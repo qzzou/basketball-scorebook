@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Basketball Scorebook</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <div class="page-title-container">
+            <h1 id="page-title">Basketball Scorebook</h1>
+            <button onclick="editPageTitle()" class="edit-title-btn" title="Edit Title">✏️</button>
+        </div>
+
+        <!-- Team Score Display -->
+        <div class="team-score-header">
+            <div class="team-name-container">
+                <span id="team-name-display" class="team-name-text">New Team</span>
+                <button onclick="showTeamSelector()" class="edit-team-btn-inline" title="Load Team">📂</button>
+                <button onclick="showRosterEditor()" class="roster-editor-btn-inline" title="Edit Roster">✏️</button>
+            </div>
+            <span id="team-total-display">0 pts</span>
+        </div>
+
+        <!-- Team Summary Section -->
+        <div id="team-summary-section" class="team-summary-section">
+            <div class="team-summary-header-bar">
+                <h3 class="team-summary-title">Team Summary</h3>
+            </div>
+            <div id="team-summary-table" class="team-summary-table">
+                <!-- Team summary populated by JavaScript -->
+            </div>
+        </div>
+
+        <!-- Action Log Section (Always Visible) -->
+        <div id="action-log-section" class="action-log-section">
+            <div class="action-log-section-header">
+                <h3 class="action-log-section-title">Action Log</h3>
+                <button onclick="clearGameHistory()" class="clear-history-btn-inline">Clear</button>
+            </div>
+            <div id="action-history-inline-list" class="action-history-inline-list">
+                <!-- Action log populated by JavaScript -->
+            </div>
+        </div>
+
+        <!-- Player Detail View Template (Inserted inline in team summary) -->
+        <template id="player-detail-template">
+            <div class="inline-player-detail">
+                <div class="player-header-row">
+                    <div class="player-identity">
+                        <span class="player-number-inline">#00</span>
+                        <span class="player-name-inline">Player Name</span>
+                    </div>
+                    <div class="foul-buttons-inline">
+                        <button class="foul-btn">P1</button>
+                        <button class="foul-btn">P2</button>
+                        <button class="foul-btn">P3</button>
+                        <button class="foul-btn">P4</button>
+                        <button class="foul-btn">P5</button>
+                        <button class="foul-btn tech">T1</button>
+                        <button class="foul-btn tech">T2</button>
+                    </div>
+                </div>
+
+                <div class="scoring-buttons-row">
+                    <button class="score-btn made" data-points="1">+1 FT</button>
+                    <button class="score-btn made" data-points="2">+2 FG</button>
+                    <button class="score-btn made" data-points="3">+3 PT</button>
+                    <button class="score-btn miss" data-miss="1">Miss 1</button>
+                    <button class="score-btn miss" data-miss="2">Miss 2</button>
+                    <button class="score-btn miss" data-miss="3">Miss 3</button>
+                </div>
+
+                <div class="stat-buttons-row">
+                    <button class="stat-btn">+REB <span class="stat-value-badge">0</span></button>
+                    <button class="stat-btn">+AST <span class="stat-value-badge">0</span></button>
+                    <button class="stat-btn">+STL <span class="stat-value-badge">0</span></button>
+                    <button class="stat-btn">+BLK <span class="stat-value-badge">0</span></button>
+                    <button class="stat-btn">+TO <span class="stat-value-badge">0</span></button>
+                </div>
+
+                <div class="manual-correction-section">
+                    <h4>Manual Correction</h4>
+                    <div class="correction-buttons-row">
+                        <button class="correction-btn plus">+PT</button>
+                        <button class="correction-btn minus">-PT</button>
+                        <button class="correction-btn minus">-REB</button>
+                        <button class="correction-btn minus">-AST</button>
+                        <button class="correction-btn minus">-STL</button>
+                        <button class="correction-btn minus">-BLK</button>
+                        <button class="correction-btn minus">-TO</button>
+                    </div>
+                </div>
+            </div>
+        </template>
+
+        <!-- Team Selector View (Hidden by default) -->
+        <div id="team-selector-view" class="view hidden">
+            <div class="team-selector-header">
+                <h2>Select Team</h2>
+                <button onclick="hideTeamSelector()" class="close-selector-btn">✕ Close</button>
+            </div>
+            <div class="team-selector-content">
+                <div class="team-selector-actions">
+                    <button onclick="showNewTeamForm()" class="new-team-btn">+ Create New Team</button>
+                </div>
+                <div id="new-team-form" class="new-team-form hidden">
+                    <input type="text" id="new-team-name-input" class="team-name-input" placeholder="Team Name" maxlength="30">
+                    <div class="form-buttons">
+                        <button onclick="createNewTeam()" class="submit-team-btn">✓ Create</button>
+                        <button onclick="hideNewTeamForm()" class="cancel-team-btn">✕ Cancel</button>
+                    </div>
+                </div>
+                <div id="saved-teams-list" class="saved-teams-list">
+                    <!-- Populated by JavaScript -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Game History View (Hidden by default) -->
+        <div id="game-history-view" class="view hidden">
+            <div class="history-header">
+                <h2>Saved Games</h2>
+                <button onclick="hideGameHistory()" class="close-history-btn">✕ Close</button>
+            </div>
+            <div id="game-history-list" class="game-history-list">
+                <!-- Game cards populated by JavaScript -->
+            </div>
+        </div>
+
+        <!-- Roster Editor View (Hidden by default) -->
+        <div id="roster-editor-view" class="view hidden">
+            <div class="roster-editor-header">
+                <h2>Edit Roster</h2>
+                <button onclick="hideRosterEditor()" class="close-roster-editor-btn">✕ Close</button>
+            </div>
+            <div class="roster-editor-content">
+                <div class="roster-editor-team-name">
+                    <span id="roster-editor-team-name-display"></span>
+                    <button onclick="renameTeamInRoster()" class="rename-team-btn" title="Rename Team">✏️</button>
+                </div>
+                <div id="roster-editor-players-list" class="roster-editor-players-list">
+                    <!-- Player roster populated by JavaScript -->
+                </div>
+                <div class="roster-editor-actions">
+                    <button onclick="showAddPlayerToRoster()" class="add-player-to-roster-btn">+ Add Player</button>
+                </div>
+                <div id="add-player-roster-form" class="add-player-roster-form hidden">
+                    <input type="text" id="roster-player-number-input" class="roster-player-input" placeholder="Jersey Number" maxlength="3">
+                    <input type="text" id="roster-player-name-input" class="roster-player-input" placeholder="Player Name" maxlength="20">
+                    <div class="roster-form-buttons">
+                        <button onclick="submitAddPlayerToRoster()" class="submit-roster-player-btn">✓ Add</button>
+                        <button onclick="hideAddPlayerToRoster()" class="cancel-roster-player-btn">✕ Cancel</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Log View (Hidden by default) -->
+        <div id="action-log-view" class="view hidden">
+            <div class="action-log-header">
+                <h2>Action Log</h2>
+                <button onclick="hideActionLog()" class="close-action-log-btn">✕ Close</button>
+            </div>
+            <div class="action-log-content">
+                <div class="action-log-controls">
+                    <button onclick="clearGameHistory()" class="clear-history-btn">Clear History</button>
+                </div>
+                <div id="action-history-list" class="action-history-list">
+                    <!-- Action log populated by JavaScript -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Game Controls -->
+        <div class="game-controls">
+            <button onclick="showGameHistory()" class="control-btn">📋 Game History</button>
+            <button onclick="startNewGame()" class="control-btn">🆕 New Game</button>
+            <button onclick="exportGame()" class="control-btn">📤 Export</button>
+            <label for="import-file" class="control-btn" style="cursor: pointer; display: inline-block;">📥 Import
+                <input type="file" id="import-file" accept=".json" onchange="importGame(event)" style="display: none;">
+            </label>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
