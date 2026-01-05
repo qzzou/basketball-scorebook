@@ -213,6 +213,18 @@
                 <input type="file" id="import-file" accept=".json" onchange="importGame(event)" style="display: none;">
             </label>
         </div>
+
+        <!-- Custom Prompt Modal -->
+        <div id="custom-prompt-overlay" class="custom-prompt-overlay hidden">
+            <div class="custom-prompt-dialog">
+                <h3 id="custom-prompt-title" class="custom-prompt-title"></h3>
+                <input type="text" id="custom-prompt-input" class="custom-prompt-input" autocomplete="off">
+                <div class="custom-prompt-buttons">
+                    <button onclick="customPromptCancel()" class="custom-prompt-btn cancel">Cancel</button>
+                    <button onclick="customPromptConfirm()" class="custom-prompt-btn confirm">OK</button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script src="script.js"></script>

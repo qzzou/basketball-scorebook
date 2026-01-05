@@ -25,6 +25,7 @@ let shotsMapState = {
     eraserActive: false,
     filterPlayerIds: [],       // For view mode filtering
     longPressTimer: null,
+    longPressCompleted: false, // Track if long press actually completed
     longPressStartTime: 0,
     pressIndicatorInterval: null,
     pressX: 0,
@@ -810,7 +811,7 @@ function renderSavedTeams() {
 
 let currentEditingTeamId = null;
 
-function showRosterEditor() {
+async function showRosterEditor() {
     const teamData = gameState.team;
 
     // Check if team exists in database
@@ -820,7 +821,7 @@ function showRosterEditor() {
     // If team doesn't exist or has default name, create it first
     if (!existingTeam || teamData.name === 'New Team') {
         const teamName = teamData.name === 'New Team'
-            ? prompt('Enter team name:')
+            ? await customPrompt('Enter team name:')
             : teamData.name;
 
         if (!teamName || teamName.trim() === '') return;
@@ -1147,13 +1148,13 @@ function deleteRosterPlayer(playerId) {
     }, 0);
 }
 
-function renameTeamInRoster() {
+async function renameTeamInRoster() {
     if (!currentEditingTeamId) return;
 
     const teamData = JSON.parse(localStorage.getItem(currentEditingTeamId));
     if (!teamData) return;
 
-    const newName = prompt('Enter new team name:', teamData.name);
+    const newName = await customPrompt('Enter new team name:', teamData.name);
     if (!newName || newName.trim() === '' || newName.trim() === teamData.name) return;
 
     const oldName = teamData.name;
@@ -2686,10 +2687,11 @@ function setupShotsMapCanvasInteractions() {
     }, { passive: true });
 
     canvas.addEventListener('touchend', () => {
-        const wasLongPress = shotsMapState.longPressTimer !== null;
+        const longPressCompleted = shotsMapState.longPressCompleted;
         cancelLongPress();
 
-        if (!wasLongPress && !hasMoved) {
+        // Only block tap if long press actually completed (not just started)
+        if (!longPressCompleted && !hasMoved) {
             handleShotsMapTap(touchStartX, touchStartY);
         }
     }, { passive: true });
@@ -2706,10 +2708,11 @@ function setupShotsMapCanvasInteractions() {
         const rect = canvas.getBoundingClientRect();
         const x = e.clientX - rect.left;
         const y = e.clientY - rect.top;
-        const wasLongPress = shotsMapState.longPressTimer !== null;
+        const longPressCompleted = shotsMapState.longPressCompleted;
         cancelLongPress();
 
-        if (!wasLongPress) {
+        // Only block tap if long press actually completed (not just started)
+        if (!longPressCompleted) {
             handleShotsMapTap(x, y);
         }
     });
@@ -2724,6 +2727,7 @@ function startLongPress(x, y) {
     shotsMapState.pressX = x;
     shotsMapState.pressY = y;
     shotsMapState.longPressStartTime = Date.now();
+    shotsMapState.longPressCompleted = false; // Track if long press actually completed
 
     const indicator = document.getElementById('shots-map-press-indicator');
 
@@ -2774,6 +2778,7 @@ function startLongPress(x, y) {
 
         if (progress >= 1) {
             clearInterval(shotsMapState.pressIndicatorInterval);
+            shotsMapState.longPressCompleted = true; // Mark as completed
             handleShotsMapLongPress(x, y);
         }
     }, 16); // ~60fps
@@ -2788,6 +2793,7 @@ function cancelLongPress() {
         shotsMapState.pressIndicatorInterval = null;
     }
     shotsMapState.longPressTimer = null;
+    shotsMapState.longPressCompleted = false; // Reset completion flag
 
     const indicator = document.getElementById('shots-map-press-indicator');
     indicator.classList.add('hidden');
@@ -3108,7 +3114,7 @@ function createDefaultTeamIfNeeded() {
 
     const defaultTeam = {
         id: teamId,
-        name: 'New Team',
+        name: 'Ravens',
         players: defaultPlayers,
         savedAt: new Date().toISOString()
     };
@@ -3119,7 +3125,7 @@ function createDefaultTeamIfNeeded() {
     // Update team list
     const teamListItem = {
         id: teamId,
-        name: 'New Team',
+        name: 'Ravens',
         playerCount: defaultPlayers.length,
         savedAt: defaultTeam.savedAt
     };
@@ -3138,14 +3144,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const latestGame = games[0]; // Games are sorted newest first
         loadGame(latestGame.id);
 
-        // After loading, if the game has "New Team" and default team exists, upgrade to default team
+        // After loading, if the game has "New Team" and Ravens team exists, upgrade to Ravens
         if (gameState.team.name === 'New Team' && gameState.team.players.length === 0) {
             const teamList = getAllTeams();
-            const newTeam = teamList.find(t => t.name === 'New Team');
-            if (newTeam) {
-                const teamData = JSON.parse(localStorage.getItem(newTeam.id));
+            const ravensTeam = teamList.find(t => t.name === 'Ravens');
+            if (ravensTeam) {
+                const teamData = JSON.parse(localStorage.getItem(ravensTeam.id));
                 if (teamData && teamData.players) {
-                    // Upgrade to default team
+                    // Upgrade to Ravens team
                     gameState.team.name = teamData.name;
                     gameState.team.players = teamData.players.map(p => ({
                         ...p,
@@ -3216,3 +3222,57 @@ document.addEventListener('DOMContentLoaded', () => {
         setupShotsMapOrientationListener();
     }
 });
+
+// ===== CUSTOM PROMPT FUNCTIONS =====
+
+let customPromptResolve = null;
+
+function customPrompt(title, defaultValue = '') {
+    return new Promise((resolve) => {
+        customPromptResolve = resolve;
+
+        const overlay = document.getElementById('custom-prompt-overlay');
+        const titleElement = document.getElementById('custom-prompt-title');
+        const input = document.getElementById('custom-prompt-input');
+
+        titleElement.textContent = title;
+        input.value = defaultValue;
+
+        overlay.classList.remove('hidden');
+        input.focus();
+        input.select();
+
+        // Handle Enter key
+        const handleEnter = (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                customPromptConfirm();
+                input.removeEventListener('keydown', handleEnter);
+            }
+        };
+        input.addEventListener('keydown', handleEnter);
+    });
+}
+
+function customPromptConfirm() {
+    const input = document.getElementById('custom-prompt-input');
+    const value = input.value;
+
+    const overlay = document.getElementById('custom-prompt-overlay');
+    overlay.classList.add('hidden');
+
+    if (customPromptResolve) {
+        customPromptResolve(value);
+        customPromptResolve = null;
+    }
+}
+
+function customPromptCancel() {
+    const overlay = document.getElementById('custom-prompt-overlay');
+    overlay.classList.add('hidden');
+
+    if (customPromptResolve) {
+        customPromptResolve(null);
+        customPromptResolve = null;
+    }
+}
