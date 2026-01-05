@@ -11,6 +11,14 @@ body {
     padding: 0;
 }
 
+/* Lucide Icons Styling */
+i[data-lucide] {
+    width: 18px;
+    height: 18px;
+    display: inline-block;
+    vertical-align: middle;
+}
+
 .container {
     max-width: 100%;
     margin: 0 auto;
@@ -31,6 +39,12 @@ h1 {
     font-size: 1.8em;
     text-transform: uppercase;
     letter-spacing: 1px;
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+
+h1:hover {
+    opacity: 0.8;
 }
 
 .edit-title-btn {
@@ -38,21 +52,25 @@ h1 {
     right: 16px;
     top: 50%;
     transform: translateY(-50%);
-    background: rgba(255, 255, 255, 0.2);
+    background: transparent;
     border: none;
     color: white;
     font-size: 20px;
-    padding: 8px 12px;
-    border-radius: 8px;
+    padding: 8px;
     cursor: pointer;
     transition: all 0.2s;
     min-width: 44px;
     min-height: 44px;
 }
 
+.edit-title-btn i[data-lucide] {
+    width: 20px;
+    height: 20px;
+}
+
 .edit-title-btn:active {
-    background: rgba(255, 255, 255, 0.3);
-    transform: translateY(-50%) scale(0.95);
+    transform: translateY(-50%) scale(0.9);
+    opacity: 0.7;
 }
 
 /* Tab Navigation */
@@ -135,7 +153,7 @@ h1 {
 .team-name-container {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 2px;
 }
 
 .team-name-text {
@@ -149,14 +167,14 @@ h1 {
 
 .edit-team-btn-inline,
 .roster-editor-btn-inline {
-    padding: 6px 10px;
+    padding: 4px 6px;
     font-size: 18px;
     border: none;
     background: transparent;
     cursor: pointer;
     transition: all 0.2s;
-    min-width: 44px;
-    min-height: 44px;
+    min-width: 40px;
+    min-height: 40px;
 }
 
 .edit-team-btn-inline {
@@ -164,7 +182,7 @@ h1 {
 }
 
 .roster-editor-btn-inline {
-    color: #ff9800;
+    color: #667eea;
 }
 
 .edit-team-btn-inline:active,
@@ -325,6 +343,11 @@ h1 {
     font-weight: bold;
 }
 
+.summary-col-to {
+    color: #f5576c;
+    font-weight: bold;
+}
+
 .summary-col-fg {
     font-size: 12px;
 }
@@ -353,21 +376,21 @@ h1 {
 }
 
 .clear-history-btn-inline {
-    padding: 6px 12px;
-    font-size: 13px;
-    font-weight: bold;
-    border: 2px solid #f5576c;
-    border-radius: 6px;
-    background: white;
-    color: #f5576c;
+    padding: 4px;
+    border: none;
+    background: transparent;
+    color: #667eea;
     cursor: pointer;
     transition: all 0.2s;
-    min-height: 36px;
+    min-height: auto;
+}
+
+.clear-history-btn-inline i[data-lucide] {
+    width: 16px;
+    height: 16px;
 }
 
 .clear-history-btn-inline:active {
-    background: #f5576c;
-    color: white;
     transform: scale(0.95);
 }
 
@@ -402,27 +425,44 @@ h1 {
 
 .close-player-detail-btn {
     position: absolute;
-    top: 0;
-    right: 0;
-    background: #f5576c;
-    border: none;
-    color: white;
-    font-size: 20px;
-    font-weight: bold;
-    width: 36px;
-    height: 36px;
+    top: -4px;
+    right: -4px;
+    background: rgba(255, 255, 255, 0.9);
+    border: 2px solid #e0e0e0;
     border-radius: 50%;
+    color: #333;
+    font-size: 24px;
+    font-weight: bold;
+    padding: 6px;
     cursor: pointer;
     transition: all 0.2s;
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    z-index: 100;
+    width: 32px;
+    height: 32px;
+}
+
+.close-player-detail-btn i[data-lucide] {
+    width: 20px;
+    height: 20px;
+    stroke: #333;
+    stroke-width: 2.5;
+    fill: none;
+}
+
+.close-player-detail-btn:hover {
+    background: #f5576c;
+    border-color: #f5576c;
+}
+
+.close-player-detail-btn:hover i[data-lucide] {
+    stroke: white;
 }
 
 .close-player-detail-btn:active {
-    background: #d63447;
-    transform: scale(0.95);
+    transform: scale(0.9);
 }
 
 .player-identity {
@@ -449,8 +489,9 @@ h1 {
 
 .foul-buttons-inline {
     display: flex;
-    gap: 6px;
-    flex-wrap: wrap;
+    gap: 4px;
+    flex-wrap: nowrap;
+    justify-content: flex-end;
 }
 
 .scoring-buttons-row {
@@ -517,31 +558,45 @@ h1 {
 
 .stat-buttons-row {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+    grid-template-columns: repeat(3, 1fr);
     gap: 8px;
     margin-bottom: 16px;
 }
 
 .stat-btn {
-    padding: 12px 8px;
-    font-size: 14px;
+    padding: 10px 6px;
+    font-size: 13px;
     font-weight: bold;
-    border: 2px solid #667eea;
+    border: 2px solid;
     border-radius: 8px;
-    background: white;
-    color: #667eea;
     cursor: pointer;
     transition: all 0.2s;
-    min-height: 48px;
+    min-height: 44px;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 6px;
+    gap: 4px;
 }
 
-.stat-btn:active {
-    background: #667eea;
+.stat-btn.stat-positive {
+    border-color: #4CAF50;
+    background: #4CAF50;
     color: white;
+}
+
+.stat-btn.stat-positive:active {
+    background: #45a049;
+    transform: scale(0.95);
+}
+
+.stat-btn.stat-negative {
+    border-color: #e0e0e0;
+    background: #e0e0e0;
+    color: #666;
+}
+
+.stat-btn.stat-negative:active {
+    background: #d0d0d0;
     transform: scale(0.95);
 }
 
@@ -574,21 +629,30 @@ h1 {
     margin: 0 0 8px 0;
 }
 
-.correction-buttons-row {
+.correction-buttons-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+    grid-template-columns: repeat(3, 1fr);
     gap: 8px;
 }
 
+.correction-buttons-grid .correction-btn:nth-child(1),
+.correction-buttons-grid .correction-btn:nth-child(2) {
+    grid-column: span 1;
+}
+
+.correction-buttons-grid .correction-btn:nth-child(3) {
+    grid-column: 1;
+}
+
 .correction-btn {
-    padding: 10px 8px;
-    font-size: 13px;
+    padding: 12px 8px;
+    font-size: 14px;
     font-weight: bold;
     border: 2px solid;
-    border-radius: 6px;
+    border-radius: 8px;
     cursor: pointer;
     transition: all 0.2s;
-    min-height: 40px;
+    min-height: 48px;
 }
 
 .correction-btn.plus {
@@ -934,20 +998,22 @@ h1 {
 }
 
 .clear-history-btn {
-    padding: 6px 12px;
+    padding: 8px 16px;
     font-size: 14px;
     font-weight: bold;
-    border: 2px solid #f5576c;
-    border-radius: 6px;
-    background: white;
+    border: none;
+    background: transparent;
     color: #f5576c;
     cursor: pointer;
     transition: all 0.2s;
 }
 
+.clear-history-btn i[data-lucide] {
+    width: 18px;
+    height: 18px;
+}
+
 .clear-history-btn:active {
-    background: #f5576c;
-    color: white;
     transform: scale(0.95);
 }
 
@@ -1071,8 +1137,8 @@ h1 {
 }
 
 .foul-btn {
-    padding: 6px 10px;
-    font-size: 12px;
+    padding: 4px 8px;
+    font-size: 11px;
     font-weight: bold;
     border: 2px solid #ccc;
     border-radius: 6px;
@@ -1080,8 +1146,8 @@ h1 {
     color: #666;
     cursor: pointer;
     transition: all 0.2s;
-    min-width: 44px;
-    min-height: 36px;
+    min-width: 36px;
+    min-height: 32px;
 }
 
 .foul-btn.active {

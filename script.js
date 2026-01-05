@@ -1321,19 +1321,12 @@ function toggleInlinePlayerDetail(playerId, rowElement) {
     const detailClone = template.content.cloneNode(true);
     const detailDiv = detailClone.querySelector('.inline-player-detail');
 
+    // Timeout ID for debouncing auto-close
+    let autoCloseTimeout = null;
+
     // Populate player info
     detailDiv.querySelector('.player-number-inline').textContent = `#${player.number || '?'}`;
     detailDiv.querySelector('.player-name-inline').textContent = player.name || 'Player';
-
-    // Add close button
-    const closeBtn = document.createElement('button');
-    closeBtn.className = 'close-player-detail-btn';
-    closeBtn.textContent = '✕';
-    closeBtn.onclick = () => {
-        detailDiv.remove();
-        rowElement.classList.remove('expanded');
-    };
-    detailDiv.querySelector('.player-header-row').appendChild(closeBtn);
 
     // Setup foul buttons
     const foulButtons = detailDiv.querySelectorAll('.foul-btn:not(.tech)');
@@ -1341,17 +1334,27 @@ function toggleInlinePlayerDetail(playerId, rowElement) {
         const foulNum = `p${index + 1}`;
         if (player[foulNum]) btn.classList.add('active');
         btn.onclick = () => {
+            console.log('Foul button clicked:', foulNum);
             // Add animation class
             btn.classList.add('clicked');
 
             togglePersonalFoul(playerId, foulNum);
-            updateInlinePlayerDetail(playerId, detailDiv);
+            updateInlinePlayerDetailBadges(playerId, detailDiv);
+            updateTeamScoreDisplay();
 
-            // Auto-close after animation
-            setTimeout(() => {
+            // Clear existing timeout and set new one (debounce)
+            if (autoCloseTimeout) {
+                console.log('Clearing previous timeout');
+                clearTimeout(autoCloseTimeout);
+            }
+            console.log('Setting timeout to close detail view in 1500ms');
+            autoCloseTimeout = setTimeout(() => {
+                console.log('Timeout executed - removing detail view');
                 detailDiv.remove();
                 rowElement.classList.remove('expanded');
-            }, 600);
+                renderTeamSummary();
+                updateTeamScoreDisplay();
+            }, 1500);
         };
     });
 
@@ -1360,17 +1363,27 @@ function toggleInlinePlayerDetail(playerId, rowElement) {
         const techNum = `t${index + 1}`;
         if (player[techNum]) btn.classList.add('active');
         btn.onclick = () => {
+            console.log('Tech foul button clicked:', techNum);
             // Add animation class
             btn.classList.add('clicked');
 
             toggleTechnicalFoul(playerId, techNum);
-            updateInlinePlayerDetail(playerId, detailDiv);
+            updateInlinePlayerDetailBadges(playerId, detailDiv);
+            updateTeamScoreDisplay();
 
-            // Auto-close after animation
-            setTimeout(() => {
+            // Clear existing timeout and set new one (debounce)
+            if (autoCloseTimeout) {
+                console.log('Clearing previous timeout');
+                clearTimeout(autoCloseTimeout);
+            }
+            console.log('Setting timeout to close detail view in 1500ms');
+            autoCloseTimeout = setTimeout(() => {
+                console.log('Timeout executed - removing detail view');
                 detailDiv.remove();
                 rowElement.classList.remove('expanded');
-            }, 600);
+                renderTeamSummary();
+                updateTeamScoreDisplay();
+            }, 1500);
         };
     });
 
@@ -1399,13 +1412,22 @@ function toggleInlinePlayerDetail(playerId, rowElement) {
             else if (points === 2) action = 'fieldgoal';
             else if (points === 3) action = 'threepointer';
             logGameAction(playerId, action);
-            updateInlinePlayerDetail(playerId, detailDiv);
+            updateInlinePlayerDetailBadges(playerId, detailDiv);
+            updateTeamScoreDisplay();
 
-            // Auto-close after animation
-            setTimeout(() => {
+            // Clear existing timeout and set new one (debounce)
+            if (autoCloseTimeout) {
+                console.log('Clearing previous timeout');
+                clearTimeout(autoCloseTimeout);
+            }
+            console.log('Setting timeout to close detail view in 1500ms');
+            autoCloseTimeout = setTimeout(() => {
+                console.log('Timeout executed - removing detail view');
                 detailDiv.remove();
                 rowElement.classList.remove('expanded');
-            }, 600);
+                renderTeamSummary();
+                updateTeamScoreDisplay();
+            }, 1500);
         };
     });
 
@@ -1424,13 +1446,21 @@ function toggleInlinePlayerDetail(playerId, rowElement) {
             else if (missType === 2) action = 'miss2';
             else if (missType === 3) action = 'miss3';
             logGameAction(playerId, action);
-            updateInlinePlayerDetail(playerId, detailDiv);
+            updateInlinePlayerDetailBadges(playerId, detailDiv);
 
-            // Auto-close after animation
-            setTimeout(() => {
+            // Clear existing timeout and set new one (debounce)
+            if (autoCloseTimeout) {
+                console.log('Clearing previous timeout');
+                clearTimeout(autoCloseTimeout);
+            }
+            console.log('Setting timeout to close detail view in 1500ms');
+            autoCloseTimeout = setTimeout(() => {
+                console.log('Timeout executed - removing detail view');
                 detailDiv.remove();
                 rowElement.classList.remove('expanded');
-            }, 600);
+                renderTeamSummary();
+                updateTeamScoreDisplay();
+            }, 1500);
         };
     });
 
@@ -1453,13 +1483,21 @@ function toggleInlinePlayerDetail(playerId, rowElement) {
             else if (stat === 'blocks') action = 'block';
             else if (stat === 'turnovers') action = 'turnover';
             logGameAction(playerId, action);
-            updateInlinePlayerDetail(playerId, detailDiv);
+            updateInlinePlayerDetailBadges(playerId, detailDiv);
 
-            // Auto-close after animation
-            setTimeout(() => {
+            // Clear existing timeout and set new one (debounce)
+            if (autoCloseTimeout) {
+                console.log('Clearing previous timeout');
+                clearTimeout(autoCloseTimeout);
+            }
+            console.log('Setting timeout to close detail view in 1500ms');
+            autoCloseTimeout = setTimeout(() => {
+                console.log('Timeout executed - removing detail view');
                 detailDiv.remove();
                 rowElement.classList.remove('expanded');
-            }, 600);
+                renderTeamSummary();
+                updateTeamScoreDisplay();
+            }, 1500);
         };
     });
 
@@ -1496,24 +1534,48 @@ function toggleInlinePlayerDetail(playerId, rowElement) {
 
             if (action) logGameAction(playerId, action, change);
 
-            updateInlinePlayerDetail(playerId, detailDiv);
+            updateInlinePlayerDetailBadges(playerId, detailDiv);
+            if (stat === 'points') updateTeamScoreDisplay();
 
-            // Auto-close after animation
-            setTimeout(() => {
+            // Clear existing timeout and set new one (debounce)
+            if (autoCloseTimeout) {
+                console.log('Clearing previous timeout');
+                clearTimeout(autoCloseTimeout);
+            }
+            console.log('Setting timeout to close detail view in 1500ms');
+            autoCloseTimeout = setTimeout(() => {
+                console.log('Timeout executed - removing detail view');
                 detailDiv.remove();
                 rowElement.classList.remove('expanded');
-            }, 600);
+                renderTeamSummary();
+                updateTeamScoreDisplay();
+            }, 1500);
         };
     });
 
+    // Add close button at the end (so it appears on top with z-index)
+    const closeBtn = document.createElement('button');
+    closeBtn.className = 'close-player-detail-btn';
+    closeBtn.innerHTML = '<i data-lucide="x"></i>';
+    closeBtn.onclick = () => {
+        detailDiv.remove();
+        rowElement.classList.remove('expanded');
+    };
+    detailDiv.querySelector('.player-header-row').appendChild(closeBtn);
+
     // Insert after the row
     rowElement.after(detailDiv);
+
+    // Initialize Lucide icons for the newly added elements
+    lucide.createIcons();
 }
 
-// Update inline player detail view without closing/reopening
-function updateInlinePlayerDetail(playerId, detailDiv) {
+// Update inline player detail view badges only (no DOM recreation)
+function updateInlinePlayerDetailBadges(playerId, detailDiv) {
     const player = gameState.team.players.find(p => p.id === playerId);
     if (!player) return;
+
+    console.log('updateInlinePlayerDetailBadges: Updating badges for player', playerId);
 
     // Update foul buttons
     const foulButtons = detailDiv.querySelectorAll('.foul-btn:not(.tech)');
@@ -1545,10 +1607,18 @@ function updateInlinePlayerDetail(playerId, detailDiv) {
         badge.textContent = player[stat] || 0;
     });
 
-    // Update team summary, score display, and save
+    // Save game state
+    autoSaveGame();
+}
+
+// Update inline player detail view without closing/reopening
+function updateInlinePlayerDetail(playerId, detailDiv) {
+    updateInlinePlayerDetailBadges(playerId, detailDiv);
+
+    // Update team summary, score display
+    // NOTE: This destroys and recreates the DOM!
     renderTeamSummary();
     updateTeamScoreDisplay();
-    autoSaveGame();
 }
 
 function renderPlayerDetail(playerId) {

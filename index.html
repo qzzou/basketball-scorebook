@@ -5,20 +5,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Basketball Scorebook</title>
     <link rel="stylesheet" href="styles.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body>
     <div class="container">
         <div class="page-title-container">
-            <h1 id="page-title">Basketball Scorebook</h1>
-            <button onclick="editPageTitle()" class="edit-title-btn" title="Edit Title">✏️</button>
+            <h1 id="page-title" onclick="editPageTitle()">Basketball Scorebook</h1>
+            <button onclick="editPageTitle()" class="edit-title-btn" title="Edit Title"><i data-lucide="square-pen"></i></button>
         </div>
 
         <!-- Team Score Display -->
         <div class="team-score-header">
             <div class="team-name-container">
                 <span id="team-name-display" class="team-name-text">New Team</span>
-                <button onclick="showTeamSelector()" class="edit-team-btn-inline" title="Load Team">📂</button>
-                <button onclick="showRosterEditor()" class="roster-editor-btn-inline" title="Edit Roster">✏️</button>
+                <button onclick="showTeamSelector()" class="edit-team-btn-inline" title="Load Team"><i data-lucide="book-open-check"></i></button>
+                <button onclick="showRosterEditor()" class="roster-editor-btn-inline" title="Edit Roster"><i data-lucide="square-pen"></i></button>
             </div>
             <span id="team-total-display">0 pts</span>
         </div>
@@ -37,7 +38,7 @@
         <div id="action-log-section" class="action-log-section">
             <div class="action-log-section-header">
                 <h3 class="action-log-section-title">Action Log</h3>
-                <button onclick="clearGameHistory()" class="clear-history-btn-inline">Clear</button>
+                <button onclick="clearGameHistory()" class="clear-history-btn-inline"><i data-lucide="trash-2"></i></button>
             </div>
             <div id="action-history-inline-list" class="action-history-inline-list">
                 <!-- Action log populated by JavaScript -->
@@ -73,23 +74,23 @@
                 </div>
 
                 <div class="stat-buttons-row">
-                    <button class="stat-btn">+REB <span class="stat-value-badge">0</span></button>
-                    <button class="stat-btn">+AST <span class="stat-value-badge">0</span></button>
-                    <button class="stat-btn">+STL <span class="stat-value-badge">0</span></button>
-                    <button class="stat-btn">+BLK <span class="stat-value-badge">0</span></button>
-                    <button class="stat-btn">+TO <span class="stat-value-badge">0</span></button>
+                    <button class="stat-btn stat-positive">+REB <span class="stat-value-badge">0</span></button>
+                    <button class="stat-btn stat-positive">+AST <span class="stat-value-badge">0</span></button>
+                    <button class="stat-btn stat-positive">+STL <span class="stat-value-badge">0</span></button>
+                    <button class="stat-btn stat-positive">+BLK <span class="stat-value-badge">0</span></button>
+                    <button class="stat-btn stat-negative">+TO <span class="stat-value-badge">0</span></button>
                 </div>
 
                 <div class="manual-correction-section">
                     <h4>Manual Correction</h4>
-                    <div class="correction-buttons-row">
+                    <div class="correction-buttons-grid">
                         <button class="correction-btn plus">+PT</button>
                         <button class="correction-btn minus">-PT</button>
                         <button class="correction-btn minus">-REB</button>
                         <button class="correction-btn minus">-AST</button>
                         <button class="correction-btn minus">-STL</button>
                         <button class="correction-btn minus">-BLK</button>
-                        <button class="correction-btn minus">-TO</button>
+                        <button class="correction-btn plus">-TO</button>
                     </div>
                 </div>
             </div>
@@ -99,7 +100,7 @@
         <div id="team-selector-view" class="view hidden">
             <div class="team-selector-header">
                 <h2>Select Team</h2>
-                <button onclick="hideTeamSelector()" class="close-selector-btn">✕ Close</button>
+                <button onclick="hideTeamSelector()" class="close-selector-btn"><i data-lucide="x"></i> Close</button>
             </div>
             <div class="team-selector-content">
                 <div class="team-selector-actions">
@@ -122,7 +123,7 @@
         <div id="game-history-view" class="view hidden">
             <div class="history-header">
                 <h2>Saved Games</h2>
-                <button onclick="hideGameHistory()" class="close-history-btn">✕ Close</button>
+                <button onclick="hideGameHistory()" class="close-history-btn"><i data-lucide="x"></i> Close</button>
             </div>
             <div id="game-history-list" class="game-history-list">
                 <!-- Game cards populated by JavaScript -->
@@ -133,12 +134,12 @@
         <div id="roster-editor-view" class="view hidden">
             <div class="roster-editor-header">
                 <h2>Edit Roster</h2>
-                <button onclick="hideRosterEditor()" class="close-roster-editor-btn">✕ Close</button>
+                <button onclick="hideRosterEditor()" class="close-roster-editor-btn"><i data-lucide="x"></i> Close</button>
             </div>
             <div class="roster-editor-content">
                 <div class="roster-editor-team-name">
                     <span id="roster-editor-team-name-display"></span>
-                    <button onclick="renameTeamInRoster()" class="rename-team-btn" title="Rename Team">✏️</button>
+                    <button onclick="renameTeamInRoster()" class="rename-team-btn" title="Rename Team"><i data-lucide="square-pen"></i></button>
                 </div>
                 <div id="roster-editor-players-list" class="roster-editor-players-list">
                     <!-- Player roster populated by JavaScript -->
@@ -161,11 +162,11 @@
         <div id="action-log-view" class="view hidden">
             <div class="action-log-header">
                 <h2>Action Log</h2>
-                <button onclick="hideActionLog()" class="close-action-log-btn">✕ Close</button>
+                <button onclick="hideActionLog()" class="close-action-log-btn"><i data-lucide="x"></i> Close</button>
             </div>
             <div class="action-log-content">
                 <div class="action-log-controls">
-                    <button onclick="clearGameHistory()" class="clear-history-btn">Clear History</button>
+                    <button onclick="clearGameHistory()" class="clear-history-btn"><i data-lucide="trash-2"></i></button>
                 </div>
                 <div id="action-history-list" class="action-history-list">
                     <!-- Action log populated by JavaScript -->
@@ -185,5 +186,9 @@
     </div>
 
     <script src="script.js"></script>
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+    </script>
 </body>
 </html>
