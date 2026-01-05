@@ -32,13 +32,12 @@ i[data-lucide] {
 }
 
 h1 {
-    text-align: center;
+    text-align: left;
     color: white;
     padding: 20px;
     margin: 0;
-    font-size: 1.8em;
-    text-transform: uppercase;
-    letter-spacing: 1px;
+    font-size: 1.3em;
+    letter-spacing: 0.5px;
     cursor: pointer;
     transition: opacity 0.2s;
 }
@@ -204,8 +203,9 @@ h1:hover {
     display: block;
 }
 
-.view.hidden {
-    display: none;
+.view.hidden,
+.hidden {
+    display: none !important;
 }
 
 /* Team Summary Section */
@@ -401,6 +401,278 @@ h1:hover {
     border-radius: 8px;
     background: #f8f9fa;
     padding: 8px;
+}
+
+/* Shots Map Section */
+.shots-map-section {
+    padding: 12px 16px;
+    background: white;
+    border-bottom: 2px solid #e0e0e0;
+}
+
+.shots-map-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.shots-map-title {
+    font-size: 16px;
+    font-weight: bold;
+    color: #667eea;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin: 0;
+}
+
+.shots-map-controls {
+    display: flex;
+    gap: 8px;
+}
+
+.shots-map-control-btn {
+    padding: 6px 8px;
+    border: none;
+    border-radius: 6px;
+    background: white;
+    color: #667eea;
+    cursor: pointer;
+    transition: all 0.2s;
+    min-width: 40px;
+    min-height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.shots-map-control-btn i[data-lucide] {
+    width: 18px;
+    height: 18px;
+}
+
+.shots-map-control-btn.active {
+    background: #667eea;
+    color: white;
+}
+
+.shots-map-control-btn:active {
+    transform: scale(0.95);
+}
+
+.shots-map-jersey-row {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 8px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding-bottom: 4px;
+    scrollbar-width: thin;
+}
+
+.shots-map-jersey-row::-webkit-scrollbar {
+    height: 6px;
+}
+
+.shots-map-jersey-row::-webkit-scrollbar-thumb {
+    background: #e0e0e0;
+    border-radius: 3px;
+}
+
+.shots-map-filter-row {
+    justify-content: space-between;
+}
+
+.shots-map-filter-jerseys {
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    flex-shrink: 1;
+    min-width: 0;
+    scrollbar-width: thin;
+}
+
+.shots-map-filter-jerseys::-webkit-scrollbar {
+    height: 6px;
+}
+
+.shots-map-filter-jerseys::-webkit-scrollbar-thumb {
+    background: #e0e0e0;
+    border-radius: 3px;
+}
+
+.shots-map-jersey-btn {
+    flex-shrink: 0;
+    padding: 8px 12px;
+    min-width: 50px;
+    height: 44px;
+    font-size: 14px;
+    font-weight: bold;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: white;
+}
+
+.shots-map-jersey-btn.made {
+    border: 2px solid #4CAF50;
+    color: #4CAF50;
+}
+
+.shots-map-jersey-btn.made.active {
+    background: #4CAF50;
+    color: white;
+    transform: scale(1.1);
+}
+
+.shots-map-jersey-btn.miss {
+    border: 2px solid #f5576c;
+    color: #f5576c;
+}
+
+.shots-map-jersey-btn.miss.active {
+    background: #f5576c;
+    color: white;
+    transform: scale(1.1);
+}
+
+.shots-map-jersey-btn.filter {
+    border: 2px solid #666;
+    color: #666;
+}
+
+.shots-map-jersey-btn.filter.active {
+    background: #666;
+    color: white;
+}
+
+.shots-map-eraser-btn,
+.shots-map-filter-clear-btn {
+    flex-shrink: 0;
+    padding: 8px 12px;
+    min-width: 50px;
+    height: 44px;
+    border: none;
+    border-radius: 6px;
+    background: white;
+    color: #ff9800;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.shots-map-eraser-btn,
+.shots-map-filter-clear-btn {
+    margin-left: auto;
+}
+
+.shots-map-eraser-btn i[data-lucide],
+.shots-map-filter-clear-btn i[data-lucide] {
+    width: 20px;
+    height: 20px;
+}
+
+.shots-map-eraser-btn.active,
+.shots-map-filter-clear-btn.active {
+    background: #ff9800;
+    color: white;
+    transform: scale(1.1);
+}
+
+.shots-map-eraser-btn:active,
+.shots-map-filter-clear-btn:active {
+    transform: scale(0.95);
+}
+
+.shots-map-jersey-btn:active {
+    transform: scale(0.95);
+}
+
+.shots-map-court-container {
+    position: relative;
+    width: 100%;
+    background: #f8f9fa;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.shots-map-canvas {
+    display: block;
+    width: 100%;
+    height: auto;
+    cursor: crosshair;
+    /* Disable iOS text selection and context menu */
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+}
+
+.shots-map-canvas.eraser-mode {
+    cursor: not-allowed;
+}
+
+/* Press Indicator - Expanding Circle */
+.shots-map-press-indicator {
+    position: absolute;
+    border: 3px solid #667eea;
+    border-radius: 50%;
+    pointer-events: none;
+    transform: translate(-50%, -50%);
+    opacity: 0.7;
+    transition: width 0.05s linear, height 0.05s linear;
+}
+
+.shots-map-press-indicator.hidden {
+    display: none;
+}
+
+/* Tooltip */
+.shots-map-tooltip {
+    position: absolute;
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: bold;
+    pointer-events: none;
+    z-index: 1000;
+    white-space: nowrap;
+    transform: translate(-50%, -100%);
+    margin-top: -8px;
+}
+
+@media (max-width: 360px) {
+    .shots-map-jersey-btn {
+        min-width: 42px;
+        height: 40px;
+        font-size: 12px;
+        padding: 6px 8px;
+    }
+
+    .shots-map-eraser-btn {
+        min-width: 42px;
+        height: 40px;
+    }
+}
+
+@media (min-width: 768px) {
+    .shots-map-section {
+        max-width: 800px;
+        margin: 0 auto;
+    }
+
+    .shots-map-court-container {
+        max-width: 600px;
+        margin: 0 auto;
+    }
 }
 
 /* Inline Player Detail View */

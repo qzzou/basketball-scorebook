@@ -11,10 +11,25 @@ let gameState = {
     },
     gameId: null,  // Current game ID (null for new game)
     savedAt: null,  // Timestamp of last save
-    history: []  // Game action history with timestamps
+    history: [],  // Game action history with timestamps
+    shotsMap: []  // Shots map data: [{playerId, x, y, made, timestamp}]
 };
 
 let playerIdCounter = 0;
+
+// Shots Map state
+let shotsMapState = {
+    mode: 'edit',              // 'edit' or 'view'
+    selectedPlayerId: null,
+    selectedType: null,        // 'made' or 'miss'
+    eraserActive: false,
+    filterPlayerIds: [],       // For view mode filtering
+    longPressTimer: null,
+    longPressStartTime: 0,
+    pressIndicatorInterval: null,
+    pressX: 0,
+    pressY: 0
+};
 
 // ===== UTILITY FUNCTIONS =====
 
@@ -53,7 +68,8 @@ function createBlankGame(optionalTeamTemplate = null) {
         },
         gameId: null,
         savedAt: null,
-        history: []
+        history: [],
+        shotsMap: []
     };
     return newGame;
 }
@@ -216,9 +232,13 @@ function renderGameHistory() {
 }
 
 function clearGameHistory() {
-    if (confirm('Clear all game history?')) {
+    if (confirm('Clear all game history and shots map?')) {
         gameState.history = [];
+        gameState.shotsMap = [];
         renderGameHistory();
+        if (document.getElementById('shots-map-canvas')) {
+            initializeShotsMapCanvas();
+        }
         autoSaveGame();
     }
 }
@@ -245,7 +265,8 @@ function autoSaveGame() {
             score: gameState.team.score,
             players: gameState.team.players  // Save complete player data as dedicated copy
         },
-        history: gameState.history || []
+        history: gameState.history || [],
+        shotsMap: gameState.shotsMap || []
     };
 
     localStorage.setItem(gameState.gameId, JSON.stringify(gameData));
@@ -310,6 +331,8 @@ function loadGame(gameId) {
     };
     // Replace history completely (do not append)
     gameState.history = gameData.history ? [...gameData.history] : [];
+    // Load shots map (backward compatibility)
+    gameState.shotsMap = gameData.shotsMap ? [...gameData.shotsMap] : [];
 
     console.log('loadGame: Loaded game', gameData.id, 'with', gameState.history.length, 'history entries');
 
@@ -1361,6 +1384,11 @@ function renderTeamSummary() {
     `;
 
     container.innerHTML = tableHTML;
+
+    // Update shots map jersey buttons if shots map exists
+    if (document.getElementById('shots-map-section')) {
+        renderShotsMapJerseyButtons();
+    }
 }
 
 // Toggle inline player detail view
@@ -2149,6 +2177,921 @@ function editPageTitle() {
     }
 }
 
+// ===== SHOTS MAP FUNCTIONS =====
+
+// Render jersey buttons for shots map
+function renderShotsMapJerseyButtons() {
+    const players = gameState.team.players;
+    if (players.length === 0) return;
+
+    const sortedPlayers = [...players].sort((a, b) => {
+        const numA = parseInt(a.number) || 999;
+        const numB = parseInt(b.number) || 999;
+        return numA - numB;
+    });
+
+    if (shotsMapState.mode === 'edit') {
+        // Green row (made shots) with eraser button at the end
+        const madeRow = document.getElementById('shots-map-made-row');
+        const madeButtons = sortedPlayers.map(p =>
+            `<button class="shots-map-jersey-btn made" data-player-id="${p.id}"
+                     onclick="selectShotsMapPlayer(${p.id}, 'made')">#${p.number || '?'}</button>`
+        ).join('');
+        madeRow.innerHTML = madeButtons +
+            `<button class="shots-map-eraser-btn" onclick="toggleShotsMapEraser()" title="Eraser">
+                <i data-lucide="eraser"></i>
+            </button>`;
+
+        // Red row (missed shots) with clear button at the end
+        const missRow = document.getElementById('shots-map-miss-row');
+        const missButtons = sortedPlayers.map(p =>
+            `<button class="shots-map-jersey-btn miss" data-player-id="${p.id}"
+                     onclick="selectShotsMapPlayer(${p.id}, 'miss')">#${p.number || '?'}</button>`
+        ).join('');
+        missRow.innerHTML = missButtons +
+            `<button class="shots-map-filter-clear-btn" onclick="clearShotsMap()" title="Clear All Shots">
+                <i data-lucide="trash-2"></i>
+            </button>`;
+
+        // Hide filter row in edit mode
+        document.getElementById('shots-map-made-row').classList.remove('hidden');
+        document.getElementById('shots-map-miss-row').classList.remove('hidden');
+        document.getElementById('shots-map-filter-row').classList.add('hidden');
+    } else {
+        // View mode - filter row shows jersey filters only (no eraser/clear)
+        const filterRow = document.getElementById('shots-map-filter-row');
+        // Group jersey buttons together
+        const jerseyButtons = sortedPlayers.map(p =>
+            `<button class="shots-map-jersey-btn filter active" data-player-id="${p.id}"
+                     onclick="toggleShotsMapFilter(${p.id})">#${p.number || '?'}</button>`
+        ).join('');
+
+        filterRow.innerHTML = `<div class="shots-map-filter-jerseys">${jerseyButtons}</div>` +
+            `<button class="shots-map-filter-clear-btn" onclick="toggleShotsMapFilterAll()" title="Clear/Select All">
+                <i data-lucide="users"></i>
+            </button>`;
+
+        document.getElementById('shots-map-made-row').classList.add('hidden');
+        document.getElementById('shots-map-miss-row').classList.add('hidden');
+        document.getElementById('shots-map-filter-row').classList.remove('hidden');
+
+        shotsMapState.filterPlayerIds = sortedPlayers.map(p => p.id);
+    }
+
+    lucide.createIcons();
+}
+
+// Initialize canvas with court drawing
+function initializeShotsMapCanvas() {
+    const canvas = document.getElementById('shots-map-canvas');
+    if (!canvas) return;
+
+    const container = canvas.parentElement;
+
+    // Full court dimensions (94ft x 50ft)
+    const isLandscape = window.matchMedia('(orientation: landscape)').matches;
+    const containerWidth = container.clientWidth;
+    let canvasWidth, canvasHeight;
+
+    if (isLandscape) {
+        // Landscape: horizontal court
+        canvasWidth = containerWidth;
+        canvasHeight = containerWidth * (50 / 94);
+    } else {
+        // Portrait: vertical court
+        canvasWidth = containerWidth;
+        canvasHeight = containerWidth * (94 / 50);
+    }
+
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = canvasWidth * dpr;
+    canvas.height = canvasHeight * dpr;
+    canvas.style.width = canvasWidth + 'px';
+    canvas.style.height = canvasHeight + 'px';
+
+    const ctx = canvas.getContext('2d');
+    ctx.scale(dpr, dpr);
+
+    drawBasketballCourt(ctx, canvasWidth, canvasHeight, isLandscape);
+    drawShots(ctx, canvasWidth, canvasHeight);
+}
+
+// Draw basketball court
+function drawBasketballCourt(ctx, width, height, isLandscape) {
+    ctx.clearRect(0, 0, width, height);
+
+    // Court background (full canvas)
+    ctx.fillStyle = '#f8f9fa';
+    ctx.fillRect(0, 0, width, height);
+
+    // College basketball court dimensions (94ft x 50ft)
+    const courtLengthFt = 94;
+    const courtWidthFt = 50;
+    const basketDistanceFromBaseline = 4; // Backboard is 4ft from baseline
+    const threePointDistanceFt = 22.146; // 22'1.75" from basket center
+    const keyWidthFt = 12;
+    const freeThrowLineDistanceFt = 19; // From baseline
+
+    // Calculate court dimensions maintaining aspect ratio with padding
+    const paddingPercent = 0.03; // 3% padding
+    const availableWidth = width * (1 - 2 * paddingPercent);
+    const availableHeight = height * (1 - 2 * paddingPercent);
+
+    let courtWidth, courtHeight, courtX, courtY;
+
+    if (isLandscape) {
+        // Landscape: court length is horizontal
+        const aspectRatio = courtWidthFt / courtLengthFt; // 50/94
+        courtWidth = availableWidth;
+        courtHeight = courtWidth * aspectRatio;
+
+        // If height exceeds available, scale by height instead
+        if (courtHeight > availableHeight) {
+            courtHeight = availableHeight;
+            courtWidth = courtHeight / aspectRatio;
+        }
+    } else {
+        // Portrait: court length is vertical
+        const aspectRatio = courtWidthFt / courtLengthFt; // 50/94
+        courtHeight = availableHeight;
+        courtWidth = courtHeight * aspectRatio;
+
+        // If width exceeds available, scale by width instead
+        if (courtWidth > availableWidth) {
+            courtWidth = availableWidth;
+            courtHeight = courtWidth / aspectRatio;
+        }
+    }
+
+    // Center the court on canvas
+    courtX = (width - courtWidth) / 2;
+    courtY = (height - courtHeight) / 2;
+
+    // Court surface
+    ctx.fillStyle = '#d2b48c';
+    ctx.fillRect(courtX, courtY, courtWidth, courtHeight);
+
+    if (isLandscape) {
+        // Landscape orientation - horizontal full court
+        const scale = courtWidth / courtLengthFt;
+        const halfCourt = courtX + courtWidth / 2;
+        const centerY = courtY + courtHeight / 2;
+
+        // Sidelines (black, emphasized) - draw first
+        ctx.strokeStyle = '#000000';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(courtX, courtY);
+        ctx.lineTo(courtX + courtWidth, courtY);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(courtX, courtY + courtHeight);
+        ctx.lineTo(courtX + courtWidth, courtY + courtHeight);
+        ctx.stroke();
+
+        // Other lines (white)
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 2;
+
+        // Half-court line
+        ctx.beginPath();
+        ctx.moveTo(halfCourt, courtY);
+        ctx.lineTo(halfCourt, courtY + courtHeight);
+        ctx.stroke();
+
+        // Center circle at half court
+        const centerCircleRadius = 6 * scale; // 6 feet radius
+        ctx.beginPath();
+        ctx.arc(halfCourt, centerY, centerCircleRadius, 0, Math.PI * 2);
+        ctx.stroke();
+
+        // Left side
+        const keyWidth = (keyWidthFt / courtWidthFt) * courtHeight;
+        const keyTop = centerY - keyWidth / 2;
+        const keyBottom = centerY + keyWidth / 2;
+        const freeThrowLineX = courtX + freeThrowLineDistanceFt * scale;
+
+        // Left basket position
+        const leftBasketX = courtX + basketDistanceFromBaseline * scale;
+
+        // Left three-point line
+        const threePointRadius = threePointDistanceFt * scale;
+        const cornerExtensionFt = 5.25; // 5 feet 3 inches from baseline
+        const cornerExtensionX = courtX + cornerExtensionFt * scale;
+
+        // Calculate where straight segments are positioned (distance from sideline)
+        // Using geometry: if arc radius is R and corner extension is E from baseline,
+        // we need to find Y offset from center where X = E
+        // For points on the arc: (x - basketX)^2 + (y - centerY)^2 = R^2
+        // At x = cornerExtensionX: (cornerExtensionX - leftBasketX)^2 + (y - centerY)^2 = threePointRadius^2
+        const horizontalDist = cornerExtensionX - leftBasketX;
+        const verticalOffset = Math.sqrt(threePointRadius * threePointRadius - horizontalDist * horizontalDist);
+
+        const topCornerY = centerY - verticalOffset;
+        const bottomCornerY = centerY + verticalOffset;
+
+        // Calculate angles for the arc
+        const topAngle = Math.atan2(topCornerY - centerY, cornerExtensionX - leftBasketX);
+        const bottomAngle = Math.atan2(bottomCornerY - centerY, cornerExtensionX - leftBasketX);
+
+        // Draw the arc
+        ctx.beginPath();
+        ctx.arc(leftBasketX, centerY, threePointRadius, topAngle, bottomAngle);
+        ctx.stroke();
+
+        // Draw straight corner segments from baseline to arc connection
+        ctx.beginPath();
+        ctx.moveTo(courtX, topCornerY);
+        ctx.lineTo(cornerExtensionX, topCornerY);
+        ctx.moveTo(courtX, bottomCornerY);
+        ctx.lineTo(cornerExtensionX, bottomCornerY);
+        ctx.stroke();
+
+        // Left key (paint area) - starts at baseline
+        ctx.beginPath();
+        ctx.moveTo(courtX, keyTop);
+        ctx.lineTo(freeThrowLineX, keyTop);
+        ctx.lineTo(freeThrowLineX, keyBottom);
+        ctx.lineTo(courtX, keyBottom);
+        ctx.closePath();
+        ctx.stroke();
+
+        // Right side
+        const rightFreeThrowLineX = courtX + courtWidth - freeThrowLineDistanceFt * scale;
+
+        // Right basket position
+        const rightBasketX = courtX + courtWidth - basketDistanceFromBaseline * scale;
+
+        // Right three-point line
+        const rightCornerExtensionX = courtX + courtWidth - cornerExtensionFt * scale;
+
+        // Calculate connection points (reuse verticalOffset from left side)
+        const rightTopCornerY = centerY - verticalOffset;
+        const rightBottomCornerY = centerY + verticalOffset;
+
+        // Calculate angles for the arc
+        const rightTopAngle = Math.atan2(rightTopCornerY - centerY, rightCornerExtensionX - rightBasketX);
+        const rightBottomAngle = Math.atan2(rightBottomCornerY - centerY, rightCornerExtensionX - rightBasketX);
+
+        // Draw the arc (from top to bottom, going counter-clockwise from right perspective)
+        ctx.beginPath();
+        ctx.arc(rightBasketX, centerY, threePointRadius, rightBottomAngle, rightTopAngle);
+        ctx.stroke();
+
+        // Draw straight corner segments from baseline to arc connection
+        ctx.beginPath();
+        ctx.moveTo(courtX + courtWidth, rightTopCornerY);
+        ctx.lineTo(rightCornerExtensionX, rightTopCornerY);
+        ctx.moveTo(courtX + courtWidth, rightBottomCornerY);
+        ctx.lineTo(rightCornerExtensionX, rightBottomCornerY);
+        ctx.stroke();
+
+        // Right key (paint area) - starts at baseline
+        ctx.beginPath();
+        ctx.moveTo(courtX + courtWidth, keyTop);
+        ctx.lineTo(rightFreeThrowLineX, keyTop);
+        ctx.lineTo(rightFreeThrowLineX, keyBottom);
+        ctx.lineTo(courtX + courtWidth, keyBottom);
+        ctx.closePath();
+        ctx.stroke();
+
+        // Baselines (black, emphasized) - draw last to be on top
+        ctx.strokeStyle = '#000000';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(courtX, courtY);
+        ctx.lineTo(courtX, courtY + courtHeight);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(courtX + courtWidth, courtY);
+        ctx.lineTo(courtX + courtWidth, courtY + courtHeight);
+        ctx.stroke();
+    } else {
+        // Portrait orientation - vertical full court
+        const scale = courtHeight / courtLengthFt;
+        const halfCourt = courtY + courtHeight / 2;
+        const centerX = courtX + courtWidth / 2;
+
+        // Sidelines (black, emphasized) - draw first
+        ctx.strokeStyle = '#000000';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(courtX, courtY);
+        ctx.lineTo(courtX, courtY + courtHeight);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(courtX + courtWidth, courtY);
+        ctx.lineTo(courtX + courtWidth, courtY + courtHeight);
+        ctx.stroke();
+
+        // Other lines (white)
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 2;
+
+        // Half-court line
+        ctx.beginPath();
+        ctx.moveTo(courtX, halfCourt);
+        ctx.lineTo(courtX + courtWidth, halfCourt);
+        ctx.stroke();
+
+        // Center circle at half court
+        const centerCircleRadius = 6 * scale; // 6 feet radius
+        ctx.beginPath();
+        ctx.arc(centerX, halfCourt, centerCircleRadius, 0, Math.PI * 2);
+        ctx.stroke();
+
+        // Top side
+        const keyWidth = (keyWidthFt / courtWidthFt) * courtWidth;
+        const keyLeft = centerX - keyWidth / 2;
+        const keyRight = centerX + keyWidth / 2;
+        const freeThrowLineY = courtY + freeThrowLineDistanceFt * scale;
+
+        // Top basket position
+        const topBasketY = courtY + basketDistanceFromBaseline * scale;
+
+        // Top three-point line
+        const threePointRadius = threePointDistanceFt * scale;
+        const cornerExtensionFt = 5.25; // 5 feet 3 inches from baseline
+        const topCornerExtensionY = courtY + cornerExtensionFt * scale;
+
+        // Calculate where straight segments are positioned
+        const verticalDist = topCornerExtensionY - topBasketY;
+        const horizontalOffset = Math.sqrt(threePointRadius * threePointRadius - verticalDist * verticalDist);
+
+        const leftCornerX = centerX - horizontalOffset;
+        const rightCornerX = centerX + horizontalOffset;
+
+        // Calculate angles for the arc
+        const leftAngle = Math.atan2(topCornerExtensionY - topBasketY, leftCornerX - centerX);
+        const rightAngle = Math.atan2(topCornerExtensionY - topBasketY, rightCornerX - centerX);
+
+        // Draw the arc (flip direction to face inward toward half-court)
+        ctx.beginPath();
+        ctx.arc(centerX, topBasketY, threePointRadius, rightAngle, leftAngle);
+        ctx.stroke();
+
+        // Draw straight corner segments from baseline to arc connection
+        ctx.beginPath();
+        ctx.moveTo(leftCornerX, courtY);
+        ctx.lineTo(leftCornerX, topCornerExtensionY);
+        ctx.moveTo(rightCornerX, courtY);
+        ctx.lineTo(rightCornerX, topCornerExtensionY);
+        ctx.stroke();
+
+        // Top key (paint area) - starts at baseline
+        ctx.beginPath();
+        ctx.moveTo(keyLeft, courtY);
+        ctx.lineTo(keyLeft, freeThrowLineY);
+        ctx.lineTo(keyRight, freeThrowLineY);
+        ctx.lineTo(keyRight, courtY);
+        ctx.closePath();
+        ctx.stroke();
+
+        // Bottom side
+        const bottomFreeThrowLineY = courtY + courtHeight - freeThrowLineDistanceFt * scale;
+
+        // Bottom basket position
+        const bottomBasketY = courtY + courtHeight - basketDistanceFromBaseline * scale;
+
+        // Bottom three-point line
+        const bottomCornerExtensionY = courtY + courtHeight - cornerExtensionFt * scale;
+
+        // Calculate connection points (reuse horizontalOffset from top side)
+        const bottomLeftCornerX = centerX - horizontalOffset;
+        const bottomRightCornerX = centerX + horizontalOffset;
+
+        // Calculate angles for the arc
+        const bottomLeftAngle = Math.atan2(bottomCornerExtensionY - bottomBasketY, bottomLeftCornerX - centerX);
+        const bottomRightAngle = Math.atan2(bottomCornerExtensionY - bottomBasketY, bottomRightCornerX - centerX);
+
+        // Draw the arc (flip direction to face inward toward half-court)
+        ctx.beginPath();
+        ctx.arc(centerX, bottomBasketY, threePointRadius, bottomLeftAngle, bottomRightAngle);
+        ctx.stroke();
+
+        // Draw straight corner segments from baseline to arc connection
+        ctx.beginPath();
+        ctx.moveTo(bottomLeftCornerX, courtY + courtHeight);
+        ctx.lineTo(bottomLeftCornerX, bottomCornerExtensionY);
+        ctx.moveTo(bottomRightCornerX, courtY + courtHeight);
+        ctx.lineTo(bottomRightCornerX, bottomCornerExtensionY);
+        ctx.stroke();
+
+        // Bottom key (paint area) - starts at baseline
+        ctx.beginPath();
+        ctx.moveTo(keyLeft, courtY + courtHeight);
+        ctx.lineTo(keyLeft, bottomFreeThrowLineY);
+        ctx.lineTo(keyRight, bottomFreeThrowLineY);
+        ctx.lineTo(keyRight, courtY + courtHeight);
+        ctx.closePath();
+        ctx.stroke();
+
+        // Baselines (black, emphasized) - draw last to be on top
+        ctx.strokeStyle = '#000000';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(courtX, courtY);
+        ctx.lineTo(courtX + courtWidth, courtY);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(courtX, courtY + courtHeight);
+        ctx.lineTo(courtX + courtWidth, courtY + courtHeight);
+        ctx.stroke();
+    }
+}
+
+// Draw shot markers
+function drawShots(ctx, canvasWidth, canvasHeight) {
+    const shots = gameState.shotsMap || [];
+    const markerRadius = 8;
+
+    shots.forEach((shot, index) => {
+        if (shotsMapState.mode === 'view' &&
+            !shotsMapState.filterPlayerIds.includes(shot.playerId)) {
+            return;
+        }
+
+        const x = shot.x * canvasWidth;
+        const y = shot.y * canvasHeight;
+
+        ctx.beginPath();
+        ctx.arc(x, y, markerRadius, 0, Math.PI * 2);
+
+        if (shot.made) {
+            ctx.fillStyle = '#4CAF50';
+            ctx.fill();
+        } else {
+            ctx.strokeStyle = '#f5576c';
+            ctx.lineWidth = 3;
+            ctx.stroke();
+        }
+
+        // In edit mode, show player info next to most recent shot
+        if (shotsMapState.mode === 'edit' && index === shots.length - 1) {
+            const player = gameState.team.players.find(p => p.id === shot.playerId);
+            if (player) {
+                ctx.font = 'bold 14px Arial';
+                ctx.fillStyle = '#333';
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 3;
+
+                const label = `#${player.number || '?'} ${player.name || 'Player'}`;
+                const labelX = x + markerRadius + 8;
+                const labelY = y + 5;
+
+                // Draw white outline for readability
+                ctx.strokeText(label, labelX, labelY);
+                ctx.fillText(label, labelX, labelY);
+            }
+        }
+    });
+}
+
+// Setup canvas interactions
+function setupShotsMapCanvasInteractions() {
+    const canvas = document.getElementById('shots-map-canvas');
+    if (!canvas) return;
+
+    let touchStartX = 0;
+    let touchStartY = 0;
+    let hasMoved = false;
+
+    // Touch events - MINIMAL preventDefault to allow scrolling/zooming
+    canvas.addEventListener('touchstart', (e) => {
+        // Allow multi-touch gestures (pinch zoom) - never prevent
+        if (e.touches.length !== 1) return;
+
+        const touch = e.touches[0];
+        const rect = canvas.getBoundingClientRect();
+        touchStartX = touch.clientX - rect.left;
+        touchStartY = touch.clientY - rect.top;
+        hasMoved = false;
+
+        // Start long press if in edit mode with selection
+        if (shotsMapState.mode === 'edit' &&
+            (shotsMapState.selectedPlayerId !== null || shotsMapState.eraserActive)) {
+            startLongPress(touchStartX, touchStartY);
+        }
+    }, { passive: true });
+
+    canvas.addEventListener('touchmove', (e) => {
+        // Allow multi-touch gestures (pinch zoom)
+        if (e.touches.length > 1) {
+            cancelLongPress();
+            return;
+        }
+
+        hasMoved = true;
+        cancelLongPress();
+    }, { passive: true });
+
+    canvas.addEventListener('touchend', () => {
+        const wasLongPress = shotsMapState.longPressTimer !== null;
+        cancelLongPress();
+
+        if (!wasLongPress && !hasMoved) {
+            handleShotsMapTap(touchStartX, touchStartY);
+        }
+    }, { passive: true });
+
+    // Mouse events
+    canvas.addEventListener('mousedown', (e) => {
+        const rect = canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        startLongPress(x, y);
+    });
+
+    canvas.addEventListener('mouseup', (e) => {
+        const rect = canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        const wasLongPress = shotsMapState.longPressTimer !== null;
+        cancelLongPress();
+
+        if (!wasLongPress) {
+            handleShotsMapTap(x, y);
+        }
+    });
+
+    canvas.addEventListener('mouseleave', () => {
+        cancelLongPress();
+    });
+}
+
+// Start long press with shrinking circle
+function startLongPress(x, y) {
+    shotsMapState.pressX = x;
+    shotsMapState.pressY = y;
+    shotsMapState.longPressStartTime = Date.now();
+
+    const indicator = document.getElementById('shots-map-press-indicator');
+
+    // Start with large circle (120px) visible outside finger area
+    const startSize = 120; // pixels - large enough to be visible outside finger
+    const endSize = 16; // pixels - final size when long press completes
+    const duration = 500; // ms
+
+    indicator.style.left = x + 'px';
+    indicator.style.top = y + 'px';
+    indicator.style.width = startSize + 'px';
+    indicator.style.height = startSize + 'px';
+    indicator.classList.remove('hidden');
+
+    // Color indicator based on shot type
+    if (shotsMapState.selectedType === 'made') {
+        indicator.style.borderColor = '#4CAF50'; // Green for made shots
+    } else if (shotsMapState.selectedType === 'miss') {
+        indicator.style.borderColor = '#f5576c'; // Red for missed shots
+    } else {
+        indicator.style.borderColor = '#ff9800'; // Orange for eraser
+    }
+
+    // Haptic feedback at start of long press
+    if (navigator.vibrate) {
+        navigator.vibrate(30);
+    }
+
+    const startTime = Date.now();
+    let halfwayHapticDone = false;
+
+    shotsMapState.pressIndicatorInterval = setInterval(() => {
+        const elapsed = Date.now() - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        // Shrink from startSize to endSize
+        const size = startSize - (progress * (startSize - endSize));
+
+        indicator.style.width = size + 'px';
+        indicator.style.height = size + 'px';
+
+        // Haptic feedback at halfway point (250ms) for better responsiveness
+        if (!halfwayHapticDone && elapsed >= duration / 2) {
+            halfwayHapticDone = true;
+            if (navigator.vibrate) {
+                navigator.vibrate(20);
+            }
+        }
+
+        if (progress >= 1) {
+            clearInterval(shotsMapState.pressIndicatorInterval);
+            handleShotsMapLongPress(x, y);
+        }
+    }, 16); // ~60fps
+
+    shotsMapState.longPressTimer = true;
+}
+
+// Cancel long press
+function cancelLongPress() {
+    if (shotsMapState.pressIndicatorInterval) {
+        clearInterval(shotsMapState.pressIndicatorInterval);
+        shotsMapState.pressIndicatorInterval = null;
+    }
+    shotsMapState.longPressTimer = null;
+
+    const indicator = document.getElementById('shots-map-press-indicator');
+    indicator.classList.add('hidden');
+}
+
+// Handle long press complete
+function handleShotsMapLongPress(x, y) {
+    const canvas = document.getElementById('shots-map-canvas');
+    const normalizedX = x / canvas.clientWidth;
+    const normalizedY = y / canvas.clientHeight;
+
+    if (shotsMapState.mode === 'edit') {
+        if (shotsMapState.eraserActive) {
+            deleteShotAt(normalizedX, normalizedY);
+        } else if (shotsMapState.selectedPlayerId !== null && shotsMapState.selectedType !== null) {
+            addShot(shotsMapState.selectedPlayerId, normalizedX, normalizedY,
+                   shotsMapState.selectedType === 'made');
+
+            if (navigator.vibrate) {
+                navigator.vibrate(50);
+            }
+        }
+    }
+
+    cancelLongPress();
+}
+
+// Handle tap (no long press)
+function handleShotsMapTap(x, y) {
+    // Haptic feedback for tap (always, regardless of mode)
+    if (navigator.vibrate) {
+        navigator.vibrate(20);
+    }
+
+    const canvas = document.getElementById('shots-map-canvas');
+    const normalizedX = x / canvas.clientWidth;
+    const normalizedY = y / canvas.clientHeight;
+
+    // Show tooltip when tapping on a shot in both edit and view modes
+    showShotTooltip(normalizedX, normalizedY, x, y);
+}
+
+// Button interactions
+function selectShotsMapPlayer(playerId, type) {
+    const selectedBtn = document.querySelector(
+        `.shots-map-jersey-btn[data-player-id="${playerId}"].${type}`
+    );
+
+    // Toggle deselect: if already selected, deselect it
+    if (shotsMapState.selectedPlayerId === playerId &&
+        shotsMapState.selectedType === type &&
+        selectedBtn && selectedBtn.classList.contains('active')) {
+
+        shotsMapState.selectedPlayerId = null;
+        shotsMapState.selectedType = null;
+        selectedBtn.classList.remove('active');
+
+        // Haptic feedback
+        if (navigator.vibrate) {
+            navigator.vibrate(20);
+        }
+        return;
+    }
+
+    // Otherwise, select this button
+    shotsMapState.selectedPlayerId = playerId;
+    shotsMapState.selectedType = type;
+    shotsMapState.eraserActive = false;
+
+    document.querySelectorAll('.shots-map-jersey-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    document.querySelector('.shots-map-eraser-btn')?.classList.remove('active');
+
+    if (selectedBtn) {
+        selectedBtn.classList.add('active');
+
+        // Haptic feedback
+        if (navigator.vibrate) {
+            navigator.vibrate(30);
+        }
+    }
+}
+
+function toggleShotsMapEraser() {
+    shotsMapState.eraserActive = !shotsMapState.eraserActive;
+    shotsMapState.selectedPlayerId = null;
+    shotsMapState.selectedType = null;
+
+    document.querySelectorAll('.shots-map-jersey-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+
+    const eraserBtn = document.querySelector('.shots-map-eraser-btn');
+    const canvas = document.getElementById('shots-map-canvas');
+
+    if (shotsMapState.eraserActive) {
+        eraserBtn.classList.add('active');
+        canvas.classList.add('eraser-mode');
+    } else {
+        eraserBtn.classList.remove('active');
+        canvas.classList.remove('eraser-mode');
+    }
+}
+
+function toggleShotsMapEditMode() {
+    shotsMapState.mode = 'edit';
+    shotsMapState.selectedPlayerId = null;
+    shotsMapState.selectedType = null;
+    shotsMapState.eraserActive = false;
+
+    const canvas = document.getElementById('shots-map-canvas');
+    if (canvas) {
+        canvas.classList.remove('eraser-mode');
+    }
+
+    document.getElementById('shots-map-edit-btn').classList.add('active');
+    document.getElementById('shots-map-done-btn').classList.remove('active');
+
+    renderShotsMapJerseyButtons();
+    initializeShotsMapCanvas();
+}
+
+function toggleShotsMapViewMode() {
+    shotsMapState.mode = 'view';
+    shotsMapState.selectedPlayerId = null;
+    shotsMapState.selectedType = null;
+    shotsMapState.eraserActive = false;
+
+    const canvas = document.getElementById('shots-map-canvas');
+    if (canvas) {
+        canvas.classList.remove('eraser-mode');
+    }
+
+    // Clear all active selections from green/red rows
+    document.querySelectorAll('.shots-map-jersey-btn.made').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    document.querySelectorAll('.shots-map-jersey-btn.miss').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    const eraserBtn = document.querySelector('.shots-map-eraser-btn');
+    if (eraserBtn) eraserBtn.classList.remove('active');
+
+    document.getElementById('shots-map-edit-btn').classList.remove('active');
+    document.getElementById('shots-map-done-btn').classList.add('active');
+
+    renderShotsMapJerseyButtons();
+    initializeShotsMapCanvas();
+}
+
+function toggleShotsMapFilter(playerId) {
+    const index = shotsMapState.filterPlayerIds.indexOf(playerId);
+    if (index >= 0) {
+        shotsMapState.filterPlayerIds.splice(index, 1);
+    } else {
+        shotsMapState.filterPlayerIds.push(playerId);
+    }
+
+    const btn = document.querySelector(
+        `.shots-map-jersey-btn.filter[data-player-id="${playerId}"]`
+    );
+    if (btn) btn.classList.toggle('active');
+
+    initializeShotsMapCanvas();
+}
+
+function toggleShotsMapFilterAll() {
+    const allPlayers = gameState.team.players.map(p => p.id);
+    const allSelected = shotsMapState.filterPlayerIds.length === allPlayers.length;
+
+    if (allSelected) {
+        // Deselect all
+        shotsMapState.filterPlayerIds = [];
+        document.querySelectorAll('.shots-map-jersey-btn.filter').forEach(btn => {
+            btn.classList.remove('active');
+        });
+    } else {
+        // Select all
+        shotsMapState.filterPlayerIds = [...allPlayers];
+        document.querySelectorAll('.shots-map-jersey-btn.filter').forEach(btn => {
+            btn.classList.add('active');
+        });
+    }
+
+    initializeShotsMapCanvas();
+}
+
+function clearShotsMap() {
+    if (confirm('Clear all shots from the map?')) {
+        gameState.shotsMap = [];
+        initializeShotsMapCanvas();
+        autoSaveGame();
+    }
+}
+
+// Shot management
+function addShot(playerId, x, y, made) {
+    const shot = {
+        playerId: playerId,
+        x: x,
+        y: y,
+        made: made,
+        timestamp: new Date().toISOString()
+    };
+
+    gameState.shotsMap.push(shot);
+    initializeShotsMapCanvas();
+    autoSaveGame();
+}
+
+function deleteShotAt(x, y) {
+    const canvas = document.getElementById('shots-map-canvas');
+    const clickRadius = 15;
+    const normalizedRadius = clickRadius / Math.min(canvas.clientWidth, canvas.clientHeight);
+
+    const shotIndex = gameState.shotsMap.findIndex(shot => {
+        const distance = Math.sqrt(Math.pow(shot.x - x, 2) + Math.pow(shot.y - y, 2));
+        return distance <= normalizedRadius;
+    });
+
+    if (shotIndex >= 0) {
+        gameState.shotsMap.splice(shotIndex, 1);
+        initializeShotsMapCanvas();
+        autoSaveGame();
+
+        if (navigator.vibrate) {
+            navigator.vibrate(50);
+        }
+    }
+}
+
+function showShotTooltip(normalizedX, normalizedY, screenX, screenY) {
+    const canvas = document.getElementById('shots-map-canvas');
+    const clickRadius = 15;
+    const normalizedRadius = clickRadius / Math.min(canvas.clientWidth, canvas.clientHeight);
+
+    const shot = gameState.shotsMap.find(s => {
+        const distance = Math.sqrt(Math.pow(s.x - normalizedX, 2) + Math.pow(s.y - normalizedY, 2));
+        return distance <= normalizedRadius;
+    });
+
+    if (shot) {
+        const player = gameState.team.players.find(p => p.id === shot.playerId);
+        if (player) {
+            const existingTooltip = document.querySelector('.shots-map-tooltip');
+            if (existingTooltip) existingTooltip.remove();
+
+            const tooltip = document.createElement('div');
+            tooltip.className = 'shots-map-tooltip';
+            tooltip.textContent = `#${player.number || '?'} ${player.name || 'Player'} - ${shot.made ? 'Made' : 'Missed'}`;
+            tooltip.style.left = screenX + 'px';
+            tooltip.style.top = screenY + 'px';
+
+            canvas.parentElement.appendChild(tooltip);
+            setTimeout(() => tooltip.remove(), 2000);
+        }
+    }
+}
+
+// Auto-scroll setup
+function setupShotsMapAutoScroll() {
+    const section = document.getElementById('shots-map-section');
+    if (!section) return;
+
+    let lastScrollTop = window.pageYOffset || document.documentElement.scrollTop;
+
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting && entry.intersectionRatio >= 0.5) {
+                const currentScrollTop = window.pageYOffset || document.documentElement.scrollTop;
+                const isScrollingDown = currentScrollTop > lastScrollTop;
+
+                if (isScrollingDown) {
+                    const rect = section.getBoundingClientRect();
+                    if (rect.top > 0 && rect.top < window.innerHeight / 2) {
+                        section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                }
+
+                lastScrollTop = currentScrollTop;
+            }
+        });
+    }, { threshold: [0.5] });
+
+    observer.observe(section);
+}
+
+// Orientation change handling
+function setupShotsMapOrientationListener() {
+    window.addEventListener('orientationchange', () => {
+        setTimeout(() => {
+            initializeShotsMapCanvas();
+        }, 100);
+    });
+
+    window.addEventListener('resize', () => {
+        clearTimeout(window.shotsMapResizeTimer);
+        window.shotsMapResizeTimer = setTimeout(() => {
+            initializeShotsMapCanvas();
+        }, 300);
+    });
+}
+
 // Initialize on page load
 // Create default "Ravens" team if no teams exist
 function createDefaultTeamIfNeeded() {
@@ -2268,5 +3211,13 @@ document.addEventListener('DOMContentLoaded', () => {
         renderTeamSummary();
         updateTeamScoreDisplay();
         renderGameHistory();
+    }
+
+    // Initialize Shots Map
+    if (document.getElementById('shots-map-section')) {
+        renderShotsMapJerseyButtons();
+        initializeShotsMapCanvas();
+        setupShotsMapCanvasInteractions();
+        setupShotsMapOrientationListener();
     }
 });

@@ -45,6 +45,36 @@
             </div>
         </div>
 
+        <!-- Shots Map Section -->
+        <div id="shots-map-section" class="shots-map-section">
+            <div class="shots-map-header">
+                <h3 class="shots-map-title">Shots Map</h3>
+                <div class="shots-map-controls">
+                    <button id="shots-map-edit-btn" onclick="toggleShotsMapEditMode()" class="shots-map-control-btn active" title="Edit Mode">
+                        <i data-lucide="square-pen"></i>
+                    </button>
+                    <button id="shots-map-done-btn" onclick="toggleShotsMapViewMode()" class="shots-map-control-btn" title="View Mode">
+                        <i data-lucide="check"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Edit Mode: Green Row (Made Shots) -->
+            <div id="shots-map-made-row" class="shots-map-jersey-row"></div>
+
+            <!-- Edit Mode: Red Row (Missed Shots) + Eraser -->
+            <div id="shots-map-miss-row" class="shots-map-jersey-row shots-map-miss-row"></div>
+
+            <!-- View Mode: Filter Row -->
+            <div id="shots-map-filter-row" class="shots-map-jersey-row shots-map-filter-row hidden"></div>
+
+            <!-- Basketball Court Canvas -->
+            <div class="shots-map-court-container">
+                <canvas id="shots-map-canvas" class="shots-map-canvas"></canvas>
+                <div id="shots-map-press-indicator" class="shots-map-press-indicator hidden"></div>
+            </div>
+        </div>
+
         <!-- Player Detail View Template (Inserted inline in team summary) -->
         <template id="player-detail-template">
             <div class="inline-player-detail">
