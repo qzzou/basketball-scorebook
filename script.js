@@ -376,16 +376,31 @@ function startNewGame() {
     // ALWAYS save current game before creating new one
     autoSaveGame();
 
-    // Check if we should load a team template
+    // Determine which team template to use for the new game
     let teamTemplate = null;
+    const teamList = getAllTeams();
+
     if (gameState.team.name !== 'New Team') {
-        // Try to find the team in team database
-        const teamList = getAllTeams();
+        // Current game has a real team - use it as template for new game
         const existingTeam = teamList.find(t => t.name === gameState.team.name);
 
         if (existingTeam) {
             // Load team roster from database as template
             const teamData = JSON.parse(localStorage.getItem(existingTeam.id));
+            if (teamData && teamData.players) {
+                teamTemplate = {
+                    name: teamData.name,
+                    players: teamData.players
+                };
+            }
+        }
+    }
+
+    // If no team template found (current was "New Team" or team not found), use Ravens default
+    if (!teamTemplate) {
+        const ravensTeam = teamList.find(t => t.name === 'Ravens');
+        if (ravensTeam) {
+            const teamData = JSON.parse(localStorage.getItem(ravensTeam.id));
             if (teamData && teamData.players) {
                 teamTemplate = {
                     name: teamData.name,
@@ -434,8 +449,21 @@ function exportGame() {
         autoSaveGame();
     }
 
-    const gameData = localStorage.getItem(gameState.gameId);
-    const blob = new Blob([gameData], { type: 'application/json' });
+    const gameData = JSON.parse(localStorage.getItem(gameState.gameId));
+
+    // Get all team templates from localStorage
+    const teamList = getAllTeams();
+    const teams = teamList.map(teamItem => {
+        return JSON.parse(localStorage.getItem(teamItem.id));
+    });
+
+    // Create export object with both game data and team templates
+    const exportData = {
+        game: gameData,
+        teams: teams
+    };
+
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -454,9 +482,51 @@ function importGame(event) {
     const reader = new FileReader();
     reader.onload = (e) => {
         try {
-            const gameData = JSON.parse(e.target.result);
+            const importData = JSON.parse(e.target.result);
 
-            // Save to localStorage
+            // Check if this is the new format (with game and teams) or old format (just game data)
+            let gameData, teams;
+            if (importData.game && importData.teams) {
+                // New format
+                gameData = importData.game;
+                teams = importData.teams;
+            } else {
+                // Old format - just game data
+                gameData = importData;
+                teams = [];
+            }
+
+            // Import teams first (if any)
+            if (teams && teams.length > 0) {
+                teams.forEach(team => {
+                    // Save team to localStorage
+                    localStorage.setItem(team.id, JSON.stringify(team));
+
+                    // Update team list
+                    let teamList = JSON.parse(localStorage.getItem('teamList') || '[]');
+
+                    // Check if team already exists in list
+                    const existingIndex = teamList.findIndex(t => t.id === team.id);
+                    const teamListItem = {
+                        id: team.id,
+                        name: team.name,
+                        playerCount: team.players ? team.players.length : 0,
+                        savedAt: team.savedAt
+                    };
+
+                    if (existingIndex >= 0) {
+                        // Update existing team
+                        teamList[existingIndex] = teamListItem;
+                    } else {
+                        // Add new team
+                        teamList.unshift(teamListItem);
+                    }
+
+                    localStorage.setItem('teamList', JSON.stringify(teamList));
+                });
+            }
+
+            // Import game data
             localStorage.setItem(gameData.id, JSON.stringify(gameData));
 
             // Update game list
@@ -471,7 +541,11 @@ function importGame(event) {
             gameList.unshift(gameListItem);
             localStorage.setItem('gameList', JSON.stringify(gameList));
 
-            alert('Game imported successfully!');
+            const teamCount = teams ? teams.length : 0;
+            const message = teamCount > 0
+                ? `Game and ${teamCount} team${teamCount > 1 ? 's' : ''} imported successfully!`
+                : 'Game imported successfully!';
+            alert(message);
             showGameHistory();
         } catch (error) {
             alert('Error importing game: ' + error.message);
@@ -1338,7 +1412,16 @@ function toggleInlinePlayerDetail(playerId, rowElement) {
             // Add animation class
             btn.classList.add('clicked');
 
-            togglePersonalFoul(playerId, foulNum);
+            // Toggle the foul directly (don't call togglePersonalFoul which calls renderTeamSummary)
+            player[foulNum] = player[foulNum] ? 0 : 1;
+
+            // Log the action
+            const action = player[foulNum] ? `personal_foul_${foulNum}` : `remove_foul_${foulNum}`;
+            logGameAction(playerId, action);
+
+            // Auto-save
+            autoSaveGame();
+
             updateInlinePlayerDetailBadges(playerId, detailDiv);
             updateTeamScoreDisplay();
 
@@ -1367,7 +1450,16 @@ function toggleInlinePlayerDetail(playerId, rowElement) {
             // Add animation class
             btn.classList.add('clicked');
 
-            toggleTechnicalFoul(playerId, techNum);
+            // Toggle the technical foul directly (don't call toggleTechnicalFoul which calls renderTeamSummary)
+            player[techNum] = player[techNum] ? 0 : 1;
+
+            // Log the action
+            const action = player[techNum] ? `technical_foul_${techNum}` : `remove_tech_${techNum}`;
+            logGameAction(playerId, action);
+
+            // Auto-save
+            autoSaveGame();
+
             updateInlinePlayerDetailBadges(playerId, detailDiv);
             updateTeamScoreDisplay();
 
@@ -2058,16 +2150,104 @@ function editPageTitle() {
 }
 
 // Initialize on page load
+// Create default "Ravens" team if no teams exist
+function createDefaultTeamIfNeeded() {
+    const teams = getAllTeams();
+    if (teams.length > 0) {
+        return null; // Teams already exist, no need to create default
+    }
+
+    // Create default Ravens team
+    const teamId = 'team_ravens_default';
+    const defaultPlayers = [
+        { id: 0, number: '21', name: 'Audrey' },
+        { id: 1, number: '1', name: 'Dishar' },
+        { id: 2, number: '4', name: 'Ela' },
+        { id: 3, number: '11', name: 'Dhalia' },
+        { id: 4, number: '31', name: 'Maya' },
+        { id: 5, number: '?', name: 'Someone' }
+    ];
+
+    const defaultTeam = {
+        id: teamId,
+        name: 'Ravens',
+        players: defaultPlayers,
+        savedAt: new Date().toISOString()
+    };
+
+    // Save team to localStorage
+    localStorage.setItem(teamId, JSON.stringify(defaultTeam));
+
+    // Update team list
+    const teamListItem = {
+        id: teamId,
+        name: 'Ravens',
+        playerCount: defaultPlayers.length,
+        savedAt: defaultTeam.savedAt
+    };
+    localStorage.setItem('teamList', JSON.stringify([teamListItem]));
+
+    return defaultTeam;
+}
+
 document.addEventListener('DOMContentLoaded', () => {
+    // Create default Ravens team if no teams exist
+    const defaultTeam = createDefaultTeamIfNeeded();
+
     // Auto-load latest game if exists
     const games = getAllGames();
     if (games.length > 0) {
         const latestGame = games[0]; // Games are sorted newest first
         loadGame(latestGame.id);
+
+        // After loading, if the game has "New Team" and Ravens team exists, upgrade to Ravens
+        if (gameState.team.name === 'New Team' && gameState.team.players.length === 0) {
+            const teamList = getAllTeams();
+            const ravensTeam = teamList.find(t => t.name === 'Ravens');
+            if (ravensTeam) {
+                const teamData = JSON.parse(localStorage.getItem(ravensTeam.id));
+                if (teamData && teamData.players) {
+                    // Upgrade to Ravens team
+                    gameState.team.name = teamData.name;
+                    gameState.team.players = teamData.players.map(p => ({
+                        ...p,
+                        points: 0,
+                        rebounds: 0,
+                        assists: 0,
+                        steals: 0,
+                        blocks: 0,
+                        turnovers: 0,
+                        p1: 0,
+                        p2: 0,
+                        p3: 0,
+                        p4: 0,
+                        p5: 0,
+                        t1: 0,
+                        t2: 0,
+                        ftMade: 0,
+                        ftAttempts: 0,
+                        fgMade: 0,
+                        fgAttempts: 0,
+                        threeMade: 0,
+                        threeAttempts: 0
+                    }));
+                    playerIdCounter = gameState.team.players.length;
+                    calculateTeamTotal();
+                    updateTeamScoreDisplay();
+                    renderTeamSummary();
+                    autoSaveGame();
+                }
+            }
+        }
     } else {
-        // No games exist - create and save a new blank game
-        gameState = createBlankGame();
-        playerIdCounter = 0;
+        // No games exist - create and save a new blank game with Ravens team if available
+        const teamTemplate = defaultTeam ? {
+            name: defaultTeam.name,
+            players: defaultTeam.players
+        } : null;
+
+        gameState = createBlankGame(teamTemplate);
+        playerIdCounter = defaultTeam ? defaultTeam.players.length : 0;
 
         // Calculate initial team total
         calculateTeamTotal();
