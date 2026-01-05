@@ -3093,27 +3093,22 @@ function setupShotsMapOrientationListener() {
 }
 
 // Initialize on page load
-// Create default "Ravens" team if no teams exist
+// Create default team if no teams exist
 function createDefaultTeamIfNeeded() {
     const teams = getAllTeams();
     if (teams.length > 0) {
         return null; // Teams already exist, no need to create default
     }
 
-    // Create default Ravens team
-    const teamId = 'team_ravens_default';
+    // Create default team
+    const teamId = 'team_default';
     const defaultPlayers = [
-        { id: 0, number: '21', name: 'Audrey' },
-        { id: 1, number: '1', name: 'Dishar' },
-        { id: 2, number: '4', name: 'Ela' },
-        { id: 3, number: '11', name: 'Dhalia' },
-        { id: 4, number: '31', name: 'Maya' },
-        { id: 5, number: '?', name: 'Someone' }
+        { id: 0, number: '?', name: 'teammate' }
     ];
 
     const defaultTeam = {
         id: teamId,
-        name: 'Ravens',
+        name: 'New Team',
         players: defaultPlayers,
         savedAt: new Date().toISOString()
     };
@@ -3124,7 +3119,7 @@ function createDefaultTeamIfNeeded() {
     // Update team list
     const teamListItem = {
         id: teamId,
-        name: 'Ravens',
+        name: 'New Team',
         playerCount: defaultPlayers.length,
         savedAt: defaultTeam.savedAt
     };
@@ -3134,7 +3129,7 @@ function createDefaultTeamIfNeeded() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Create default Ravens team if no teams exist
+    // Create default team if no teams exist
     const defaultTeam = createDefaultTeamIfNeeded();
 
     // Auto-load latest game if exists
@@ -3143,14 +3138,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const latestGame = games[0]; // Games are sorted newest first
         loadGame(latestGame.id);
 
-        // After loading, if the game has "New Team" and Ravens team exists, upgrade to Ravens
+        // After loading, if the game has "New Team" and default team exists, upgrade to default team
         if (gameState.team.name === 'New Team' && gameState.team.players.length === 0) {
             const teamList = getAllTeams();
-            const ravensTeam = teamList.find(t => t.name === 'Ravens');
-            if (ravensTeam) {
-                const teamData = JSON.parse(localStorage.getItem(ravensTeam.id));
+            const newTeam = teamList.find(t => t.name === 'New Team');
+            if (newTeam) {
+                const teamData = JSON.parse(localStorage.getItem(newTeam.id));
                 if (teamData && teamData.players) {
-                    // Upgrade to Ravens team
+                    // Upgrade to default team
                     gameState.team.name = teamData.name;
                     gameState.team.players = teamData.players.map(p => ({
                         ...p,
@@ -3183,7 +3178,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
     } else {
-        // No games exist - create and save a new blank game with Ravens team if available
+        // No games exist - create and save a new blank game with default team if available
         const teamTemplate = defaultTeam ? {
             name: defaultTeam.name,
             players: defaultTeam.players
