@@ -2,234 +2,141 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Basketball Scorebook</title>
-    <link rel="stylesheet" href="styles.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <title>Basketball Scorebook 2.0</title>
+    <link rel="stylesheet" href="styles-2.css">
+
+    <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body>
-    <div class="container">
-        <div class="page-title-container">
-            <h1 id="page-title" onclick="editPageTitle()">Basketball Scorebook</h1>
-            <button onclick="editPageTitle()" class="edit-title-btn" title="Edit Title"><i data-lucide="square-pen"></i></button>
+    <!-- Header -->
+    <header class="app-header">
+        <h1 id="game-name">Basketball Scorebook</h1>
+        <div class="header-buttons">
+            <button id="settings-btn" class="icon-btn" title="Settings">
+                <i data-lucide="settings"></i>
+            </button>
+            <button id="help-btn" class="icon-btn" title="Help">
+                <i data-lucide="info"></i>
+            </button>
         </div>
+    </header>
 
-        <!-- Team Score Display -->
-        <div class="team-score-header">
-            <div class="team-name-container">
-                <span id="team-name-display" class="team-name-text">New Team</span>
-                <button onclick="showTeamSelector()" class="edit-team-btn-inline" title="Load Team"><i data-lucide="book-open-check"></i></button>
-                <button onclick="showRosterEditor()" class="roster-editor-btn-inline" title="Edit Roster"><i data-lucide="square-pen"></i></button>
-            </div>
-            <span id="team-total-display">0 pts</span>
-        </div>
-
-        <!-- Team Summary Section -->
-        <div id="team-summary-section" class="team-summary-section">
-            <div class="team-summary-header-bar">
-                <h3 class="team-summary-title">Team Summary</h3>
-            </div>
-            <div id="team-summary-table" class="team-summary-table">
-                <!-- Team summary populated by JavaScript -->
-            </div>
-        </div>
-
-        <!-- Action Log Section (Always Visible) -->
-        <div id="action-log-section" class="action-log-section">
-            <div class="action-log-section-header">
-                <h3 class="action-log-section-title">Action Log</h3>
-                <button onclick="clearGameHistory()" class="clear-history-btn-inline"><i data-lucide="trash-2"></i></button>
-            </div>
-            <div id="action-history-inline-list" class="action-history-inline-list">
-                <!-- Action log populated by JavaScript -->
-            </div>
-        </div>
-
-        <!-- Shots Map Section -->
-        <div id="shots-map-section" class="shots-map-section">
-            <div class="shots-map-header">
-                <h3 class="shots-map-title">Shots Map</h3>
-                <div class="shots-map-controls">
-                    <button id="shots-map-edit-btn" onclick="toggleShotsMapEditMode()" class="shots-map-control-btn active" title="Edit Mode">
+    <div class="app-container">
+        <!-- Shot Map Section -->
+        <section class="shot-map-section">
+            <div class="section-header">
+                <h2>Shot Map</h2>
+                <div class="control-buttons">
+                    <button id="undo-btn" class="icon-btn" title="Undo">
+                        <i data-lucide="undo"></i>
+                    </button>
+                    <button id="redo-btn" class="icon-btn" title="Redo">
+                        <i data-lucide="redo"></i>
+                    </button>
+                    <button id="select-btn" class="icon-btn" title="Select All / Clear All" style="display: none;">
+                        <i data-lucide="users"></i>
+                    </button>
+                    <button id="edit-btn" class="icon-btn active" title="Edit Mode">
                         <i data-lucide="square-pen"></i>
                     </button>
-                    <button id="shots-map-done-btn" onclick="toggleShotsMapViewMode()" class="shots-map-control-btn" title="View Mode">
-                        <i data-lucide="check"></i>
+                    <button id="view-btn" class="icon-btn" title="View Mode">
+                        <i data-lucide="eye"></i>
                     </button>
                 </div>
             </div>
 
-            <!-- Edit Mode: Green Row (Made Shots) -->
-            <div id="shots-map-made-row" class="shots-map-jersey-row"></div>
+            <!-- Jersey Row -->
+            <div id="jersey-row" class="jersey-row"></div>
 
-            <!-- Edit Mode: Red Row (Missed Shots) + Eraser -->
-            <div id="shots-map-miss-row" class="shots-map-jersey-row shots-map-miss-row"></div>
-
-            <!-- View Mode: Filter Row -->
-            <div id="shots-map-filter-row" class="shots-map-jersey-row shots-map-filter-row hidden"></div>
-
-            <!-- Basketball Court Canvas -->
-            <div class="shots-map-court-container">
-                <canvas id="shots-map-canvas" class="shots-map-canvas"></canvas>
-                <div id="shots-map-press-indicator" class="shots-map-press-indicator hidden"></div>
+            <!-- Stat Row (Fouls + Stats + Actions) -->
+            <div id="stat-row" class="stat-row">
+                <p>Select a player to begin</p>
             </div>
-        </div>
 
-        <!-- Player Detail View Template (Inserted inline in team summary) -->
-        <template id="player-detail-template">
-            <div class="inline-player-detail">
-                <div class="player-header-row">
-                    <div class="player-identity">
-                        <span class="player-number-inline">#00</span>
-                        <span class="player-name-inline">Player Name</span>
-                    </div>
-                    <div class="foul-buttons-inline">
-                        <button class="foul-btn">P1</button>
-                        <button class="foul-btn">P2</button>
-                        <button class="foul-btn">P3</button>
-                        <button class="foul-btn">P4</button>
-                        <button class="foul-btn">P5</button>
-                        <button class="foul-btn tech">T1</button>
-                        <button class="foul-btn tech">T2</button>
-                    </div>
-                </div>
-
-                <div class="scoring-buttons-row">
-                    <button class="score-btn made" data-points="1">+1 FT</button>
-                    <button class="score-btn made" data-points="2">+2 FG</button>
-                    <button class="score-btn made" data-points="3">+3 PT</button>
-                    <button class="score-btn miss" data-miss="1">Miss 1</button>
-                    <button class="score-btn miss" data-miss="2">Miss 2</button>
-                    <button class="score-btn miss" data-miss="3">Miss 3</button>
-                </div>
-
-                <div class="stat-buttons-row">
-                    <button class="stat-btn stat-positive">+REB <span class="stat-value-badge">0</span></button>
-                    <button class="stat-btn stat-positive">+AST <span class="stat-value-badge">0</span></button>
-                    <button class="stat-btn stat-positive">+STL <span class="stat-value-badge">0</span></button>
-                    <button class="stat-btn stat-positive">+BLK <span class="stat-value-badge">0</span></button>
-                    <button class="stat-btn stat-negative">+TO <span class="stat-value-badge">0</span></button>
-                </div>
-
-                <div class="manual-correction-section">
-                    <h4>Manual Correction</h4>
-                    <div class="correction-buttons-grid">
-                        <button class="correction-btn plus">+PT</button>
-                        <button class="correction-btn minus">-PT</button>
-                        <button class="correction-btn minus">-REB</button>
-                        <button class="correction-btn minus">-AST</button>
-                        <button class="correction-btn minus">-STL</button>
-                        <button class="correction-btn minus">-BLK</button>
-                        <button class="correction-btn plus">-TO</button>
-                    </div>
+            <!-- Draw Row (hidden by default) -->
+            <div id="draw-row" class="draw-row" style="display: none;">
+                <div class="draw-text" id="draw-text"></div>
+                <div class="draw-buttons">
+                    <button id="redraw-btn" class="btn-secondary">Redraw</button>
+                    <button id="done-btn" class="btn-primary">Done</button>
+                    <button id="cancel-btn" class="btn-secondary">Cancel</button>
                 </div>
             </div>
-        </template>
 
-        <!-- Team Selector View (Hidden by default) -->
-        <div id="team-selector-view" class="view hidden">
-            <div class="team-selector-header">
-                <h2>Select Team</h2>
-                <button onclick="hideTeamSelector()" class="close-selector-btn"><i data-lucide="x"></i> Close</button>
+            <!-- Court Canvas -->
+            <div class="court-container">
+                <canvas id="shots-map-canvas"></canvas>
             </div>
-            <div class="team-selector-content">
-                <div class="team-selector-actions">
-                    <button onclick="showNewTeamForm()" class="new-team-btn">+ Create New Team</button>
-                </div>
-                <div id="new-team-form" class="new-team-form hidden">
-                    <input type="text" id="new-team-name-input" class="team-name-input" placeholder="Team Name" maxlength="30">
-                    <div class="form-buttons">
-                        <button onclick="createNewTeam()" class="submit-team-btn">✓ Create</button>
-                        <button onclick="hideNewTeamForm()" class="cancel-team-btn">✕ Cancel</button>
-                    </div>
-                </div>
-                <div id="saved-teams-list" class="saved-teams-list">
-                    <!-- Populated by JavaScript -->
-                </div>
-            </div>
-        </div>
+        </section>
 
-        <!-- Game History View (Hidden by default) -->
-        <div id="game-history-view" class="view hidden">
-            <div class="history-header">
-                <h2>Saved Games</h2>
-                <button onclick="hideGameHistory()" class="close-history-btn"><i data-lucide="x"></i> Close</button>
-            </div>
-            <div id="game-history-list" class="game-history-list">
-                <!-- Game cards populated by JavaScript -->
-            </div>
-        </div>
+        <!-- Action Log Section -->
+        <section class="action-log-section">
+            <h2>Action Log</h2>
+            <p class="help-text">Click on action to make change if needed</p>
+            <div id="action-log" class="action-log"></div>
+        </section>
 
-        <!-- Roster Editor View (Hidden by default) -->
-        <div id="roster-editor-view" class="view hidden">
-            <div class="roster-editor-header">
-                <h2>Edit Roster</h2>
-                <button onclick="hideRosterEditor()" class="close-roster-editor-btn"><i data-lucide="x"></i> Close</button>
-            </div>
-            <div class="roster-editor-content">
-                <div class="roster-editor-team-name">
-                    <span id="roster-editor-team-name-display"></span>
-                    <button onclick="renameTeamInRoster()" class="rename-team-btn" title="Rename Team"><i data-lucide="square-pen"></i></button>
-                </div>
-                <div id="roster-editor-players-list" class="roster-editor-players-list">
-                    <!-- Player roster populated by JavaScript -->
-                </div>
-                <div class="roster-editor-actions">
-                    <button onclick="showAddPlayerToRoster()" class="add-player-to-roster-btn">+ Add Player</button>
-                </div>
-                <div id="add-player-roster-form" class="add-player-roster-form hidden">
-                    <input type="text" id="roster-player-number-input" class="roster-player-input" placeholder="Jersey Number" maxlength="3">
-                    <input type="text" id="roster-player-name-input" class="roster-player-input" placeholder="Player Name" maxlength="20">
-                    <div class="roster-form-buttons">
-                        <button onclick="submitAddPlayerToRoster()" class="submit-roster-player-btn">✓ Add</button>
-                        <button onclick="hideAddPlayerToRoster()" class="cancel-roster-player-btn">✕ Cancel</button>
-                    </div>
-                </div>
-            </div>
-        </div>
+        <!-- Summary Section -->
+        <section class="summary-section">
+            <h2>Team Summary</h2>
+            <div id="summary-table" class="summary-table"></div>
+        </section>
 
-        <!-- Action Log View (Hidden by default) -->
-        <div id="action-log-view" class="view hidden">
-            <div class="action-log-header">
-                <h2>Action Log</h2>
-                <button onclick="hideActionLog()" class="close-action-log-btn"><i data-lucide="x"></i> Close</button>
-            </div>
-            <div class="action-log-content">
-                <div class="action-log-controls">
-                    <button onclick="clearGameHistory()" class="clear-history-btn"><i data-lucide="trash-2"></i></button>
-                </div>
-                <div id="action-history-list" class="action-history-list">
-                    <!-- Action log populated by JavaScript -->
-                </div>
-            </div>
-        </div>
-
-        <!-- Game Controls -->
-        <div class="game-controls">
-            <button onclick="showGameHistory()" class="control-btn">📋 Game History</button>
-            <button onclick="startNewGame()" class="control-btn">🆕 New Game</button>
-            <button onclick="exportGame()" class="control-btn">📤 Export</button>
-            <label for="import-file" class="control-btn" style="cursor: pointer; display: inline-block;">📥 Import
-                <input type="file" id="import-file" accept=".json" onchange="importGame(event)" style="display: none;">
-            </label>
-        </div>
-
-        <!-- Custom Prompt Modal -->
-        <div id="custom-prompt-overlay" class="custom-prompt-overlay hidden">
-            <div class="custom-prompt-dialog">
-                <h3 id="custom-prompt-title" class="custom-prompt-title"></h3>
-                <input type="text" id="custom-prompt-input" class="custom-prompt-input" autocomplete="off">
-                <div class="custom-prompt-buttons">
-                    <button onclick="customPromptCancel()" class="custom-prompt-btn cancel">Cancel</button>
-                    <button onclick="customPromptConfirm()" class="custom-prompt-btn confirm">OK</button>
-                </div>
-            </div>
+        <!-- Game Management -->
+        <div class="game-management">
+            <button id="history-btn" class="btn-secondary">
+                <i data-lucide="history"></i> History
+            </button>
+            <button id="export-btn" class="btn-secondary">
+                <i data-lucide="download"></i> Export
+            </button>
+            <button id="import-btn" class="btn-secondary">
+                <i data-lucide="upload"></i> Import
+            </button>
+            <button id="clear-game-btn" class="btn-danger">
+                <i data-lucide="eraser"></i> Clear Game
+            </button>
+            <button id="new-game-btn" class="btn-primary">
+                <i data-lucide="plus-circle"></i> New Game
+            </button>
         </div>
     </div>
 
-    <script src="script.js"></script>
+    <!-- Load Scripts in Order -->
+    <!-- Utilities -->
+    <script src="js/utils/idGenerator.js"></script>
+    <script src="js/utils/formatters.js"></script>
+    <script src="js/utils/animations.js"></script>
+
+    <!-- Core -->
+    <script src="js/core/eventBus.js"></script>
+    <script src="js/core/dataModel.js"></script>
+    <script src="js/core/storage.js"></script>
+
+    <!-- Managers -->
+    <script src="js/managers/statCalculator.js"></script>
+    <script src="js/managers/eventManager.js"></script>
+    <script src="js/managers/gameManager.js"></script>
+
+    <!-- Canvas -->
+    <script src="js/canvas/courtRenderer.js"></script>
+    <script src="js/canvas/shotRenderer.js"></script>
+    <script src="js/canvas/canvasInteraction.js"></script>
+
+    <!-- UI -->
+    <script src="js/ui/settingsUI.js"></script>
+    <script src="js/ui/gameHistoryUI.js"></script>
+    <script src="js/ui/actionCorrectionUI.js"></script>
+    <script src="js/ui/helpUI.js"></script>
+    <script src="js/ui/ui.js"></script>
+
+    <!-- App -->
+    <script src="js/app.js"></script>
+
+    <!-- Initialize Lucide Icons -->
     <script>
-        // Initialize Lucide icons
         lucide.createIcons();
     </script>
 </body>
