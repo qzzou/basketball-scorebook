@@ -44,25 +44,6 @@ const SettingsUI = (() => {
                             <label>Player Names</label>
                             <div id="player-names-section" class="player-names-section"></div>
                         </div>
-
-                        <!-- Game Actions -->
-                        <div class="settings-section">
-                            <label>Game Management</label>
-                            <div class="settings-actions">
-                                <button onclick="SettingsUI.showGameHistory()" class="btn-secondary">
-                                    <i data-lucide="history"></i> Game History
-                                </button>
-                                <button onclick="SettingsUI.handleNewGame()" class="btn-secondary">
-                                    <i data-lucide="plus"></i> New Game
-                                </button>
-                                <button onclick="SettingsUI.handleExport()" class="btn-secondary">
-                                    <i data-lucide="download"></i> Export Game
-                                </button>
-                                <button onclick="SettingsUI.handleImport()" class="btn-secondary">
-                                    <i data-lucide="upload"></i> Import Game
-                                </button>
-                            </div>
-                        </div>
                     </div>
                     <div class="modal-footer">
                         <button onclick="SettingsUI.close()" class="btn-secondary">Cancel</button>

@@ -62,24 +62,37 @@ const UI = (() => {
 
             // Render stat row based on mode
             if (appState.currentMode === 'edit') {
-                if (appState.selectedJersey) {
+                if (appState.selectedJersey !== null) {
                     this.renderStatRow(appState.selectedJersey);
                 } else {
-                    document.getElementById('stat-row').innerHTML = '<p>Select a player</p>';
+                    document.getElementById('stat-row').innerHTML = '<p>Select a player to begin</p>';
                 }
             } else {
                 // View mode - show combined stats
                 this.renderViewModeStats();
             }
 
-            // Update undo/redo and select buttons
-            document.getElementById('undo-btn').disabled = !EventManager.canUndo();
-            document.getElementById('redo-btn').disabled = !EventManager.canRedo();
+            // Update undo/redo buttons - hide in view mode, enable/disable in edit mode
+            const undoBtn = document.getElementById('undo-btn');
+            const redoBtn = document.getElementById('redo-btn');
+            if (appState.currentMode === 'view') {
+                if (undoBtn) undoBtn.style.display = 'none';
+                if (redoBtn) redoBtn.style.display = 'none';
+            } else {
+                if (undoBtn) {
+                    undoBtn.style.display = 'inline-flex';
+                    undoBtn.disabled = !EventManager.canUndo();
+                }
+                if (redoBtn) {
+                    redoBtn.style.display = 'inline-flex';
+                    redoBtn.disabled = !EventManager.canRedo();
+                }
+            }
 
-            // Update select button visibility
+            // Update select button visibility (only show in view mode)
             const selectBtn = document.getElementById('select-btn');
             if (selectBtn) {
-                selectBtn.style.display = appState.currentMode === 'view' ? 'flex' : 'none';
+                selectBtn.style.display = appState.currentMode === 'view' ? 'inline-flex' : 'none';
             }
         },
 
@@ -125,11 +138,13 @@ const UI = (() => {
          */
         handleJerseyClick(jerseyNumber) {
             const appState = DataModel.getAppState();
-            appState.selectedJersey = jerseyNumber;
 
-            // Load player's foul status
-            const statsCache = DataModel.getPlayerStatsCache();
-            const playerStats = statsCache[jerseyNumber];
+            // Toggle selection - allow deselecting
+            if (appState.selectedJersey === jerseyNumber) {
+                appState.selectedJersey = null;
+            } else {
+                appState.selectedJersey = jerseyNumber;
+            }
 
             this.render();
         },
@@ -199,6 +214,7 @@ const UI = (() => {
                 </div>
                 <div class="stats-display">
                     <div class="stat"><div class="value">${stats.PTS || 0}</div><div class="label">PTS</div></div>
+                    <div class="stat"><div class="value">${stats.FOULS?.total || 0}</div><div class="label">FLS</div></div>
                     <div class="stat"><div class="value">${Formatters.formatFT(stats.FT || {made:0, attempts:0})}</div><div class="label">FT</div></div>
                     <div class="stat"><div class="value">${Formatters.formatFG(stats.FG || {made:0, attempts:0})}</div><div class="label">FG</div></div>
                     <div class="stat"><div class="value">${Formatters.format3PT(stats['3PT'] || {made:0, attempts:0})}</div><div class="label">3PT</div></div>
@@ -207,7 +223,6 @@ const UI = (() => {
                     <div class="stat"><div class="value">${stats.STL || 0}</div><div class="label">STL</div></div>
                     <div class="stat"><div class="value">${stats.BLK || 0}</div><div class="label">BLK</div></div>
                     <div class="stat"><div class="value">${stats.TO || 0}</div><div class="label">TO</div></div>
-                    <div class="stat"><div class="value">${stats.FOULS?.total || 0}</div><div class="label">FOULS</div></div>
                 </div>
             `;
         },
@@ -223,17 +238,9 @@ const UI = (() => {
             if (!container) return;
 
             container.innerHTML = `
-                <div class="foul-buttons">
-                    <button onclick="UI.handleFoulToggle('P1')" class="${stats.FOULS?.activeFouls?.P1 ? 'active' : ''}">P1</button>
-                    <button onclick="UI.handleFoulToggle('P2')" class="${stats.FOULS?.activeFouls?.P2 ? 'active' : ''}">P2</button>
-                    <button onclick="UI.handleFoulToggle('P3')" class="${stats.FOULS?.activeFouls?.P3 ? 'active' : ''}">P3</button>
-                    <button onclick="UI.handleFoulToggle('P4')" class="${stats.FOULS?.activeFouls?.P4 ? 'active' : ''}">P4</button>
-                    <button onclick="UI.handleFoulToggle('P5')" class="${stats.FOULS?.activeFouls?.P5 ? 'active' : ''}">P5</button>
-                    <button onclick="UI.handleFoulToggle('T1')" class="${stats.FOULS?.activeFouls?.T1 ? 'active' : ''}">T1</button>
-                    <button onclick="UI.handleFoulToggle('T2')" class="${stats.FOULS?.activeFouls?.T2 ? 'active' : ''}">T2</button>
-                </div>
                 <div class="stats-display">
                     <div class="stat"><div class="value">${stats.PTS || 0}</div><div class="label">PTS</div></div>
+                    <div class="stat stat-warning"><div class="value">${stats.FOULS?.total || 0}</div><div class="label">FLS</div></div>
                     <div class="stat"><div class="value">${Formatters.formatFT(stats.FT || {made:0, attempts:0})}</div><div class="label">FT</div></div>
                     <div class="stat"><div class="value">${Formatters.formatFG(stats.FG || {made:0, attempts:0})}</div><div class="label">FG</div></div>
                     <div class="stat"><div class="value">${Formatters.format3PT(stats['3PT'] || {made:0, attempts:0})}</div><div class="label">3PT</div></div>
@@ -241,20 +248,26 @@ const UI = (() => {
                     <div class="stat"><div class="value">${stats.AST || 0}</div><div class="label">AST</div></div>
                     <div class="stat"><div class="value">${stats.STL || 0}</div><div class="label">STL</div></div>
                     <div class="stat"><div class="value">${stats.BLK || 0}</div><div class="label">BLK</div></div>
-                    <div class="stat"><div class="value">${stats.TO || 0}</div><div class="label">TO</div></div>
+                    <div class="stat stat-warning"><div class="value">${stats.TO || 0}</div><div class="label">TO</div></div>
                 </div>
-                <div class="action-buttons">
-                    <button onclick="UI.handleShotButton(1, true)">+1</button>
-                    <button onclick="UI.handleShotButton(2, true)">+2</button>
-                    <button onclick="UI.handleShotButton(3, true)">+3</button>
-                    <button onclick="UI.handleShotButton(1, false)">Miss 1</button>
-                    <button onclick="UI.handleShotButton(2, false)">Miss 2</button>
-                    <button onclick="UI.handleShotButton(3, false)">Miss 3</button>
-                    <button onclick="UI.handleStatButton('REB')">+REB</button>
-                    <button onclick="UI.handleStatButton('AST')">+AST</button>
-                    <button onclick="UI.handleStatButton('STL')">+STL</button>
-                    <button onclick="UI.handleStatButton('BLK')">+BLK</button>
-                    <button onclick="UI.handleStatButton('TO')">+TO</button>
+                <div class="action-buttons-container">
+                    <div class="shot-buttons-row">
+                        <button onclick="UI.handleShotButton(1, true)" class="action-btn">Made FT</button>
+                        <button onclick="UI.handleShotButton(2, true)" class="action-btn">Made FG</button>
+                        <button onclick="UI.handleShotButton(3, true)" class="action-btn">Made 3PT</button>
+                        <button onclick="UI.handleShotButton(1, false)" class="action-btn">Miss FT</button>
+                        <button onclick="UI.handleShotButton(2, false)" class="action-btn">Miss FG</button>
+                        <button onclick="UI.handleShotButton(3, false)" class="action-btn">Miss 3PT</button>
+                    </div>
+                    <div class="stat-buttons-row">
+                        <button onclick="UI.handleStatButton('REB')" class="action-btn">+REB</button>
+                        <button onclick="UI.handleStatButton('AST')" class="action-btn">+AST</button>
+                        <button onclick="UI.handleStatButton('STL')" class="action-btn">+STL</button>
+                        <button onclick="UI.handleStatButton('BLK')" class="action-btn">+BLK</button>
+                        <button onclick="UI.handleStatButton('TO')" class="action-btn">+TO</button>
+                        <button onclick="UI.handleFoulButton('FOUL')" class="action-btn foul-btn">+FOUL</button>
+                        <button onclick="UI.handleFoulButton('TECH')" class="action-btn tech-btn">+TECH</button>
+                    </div>
                 </div>
             `;
         },
@@ -265,11 +278,14 @@ const UI = (() => {
         handleFoulToggle(foulType) {
             const appState = DataModel.getAppState();
             const jerseyNumber = appState.selectedJersey;
-            if (!jerseyNumber) return;
+            if (jerseyNumber === null) return;
 
             const statsCache = DataModel.getPlayerStatsCache();
             const playerStats = statsCache[jerseyNumber] || {};
-            const activeFouls = playerStats.FOULS?.activeFouls || {};
+            const currentActiveFouls = playerStats.FOULS?.activeFouls || {};
+
+            // Create a new object to avoid mutation issues
+            const activeFouls = { ...currentActiveFouls };
 
             // Toggle the foul button
             activeFouls[foulType] = !activeFouls[foulType];
@@ -281,26 +297,24 @@ const UI = (() => {
         },
 
         /**
-         * Handle shot button
+         * Handle shot button - NEW WORKFLOW
          */
         handleShotButton(points, made) {
             const appState = DataModel.getAppState();
             const jerseyNumber = appState.selectedJersey;
-            if (!jerseyNumber) return;
+            if (jerseyNumber === null) return;
 
             const shotType = points === 1 ? 'FT' : points === 3 ? '3PT' : 'FG';
 
-            // Set selected shot type for canvas interaction
-            appState.selectedShotType = made ? `+${points}` : `miss${points}`;
+            // Deselect all other shot buttons, select this one
+            appState.selectedShotType = { points, made, shotType };
+            appState.pendingShot = null; // Clear any pending shot
 
-            // Add shot event without location (button click)
-            EventManager.addEvent(jerseyNumber, 'shot', {
-                shotData: {
-                    made,
-                    shotType,
-                    location: null
-                }
-            });
+            // Show Draw Row
+            this.showDrawRow(jerseyNumber, points, made);
+
+            // Hide existing shots on canvas
+            this.renderCanvas(true); // hideShots = true
         },
 
         /**
@@ -309,11 +323,83 @@ const UI = (() => {
         handleStatButton(statType) {
             const appState = DataModel.getAppState();
             const jerseyNumber = appState.selectedJersey;
-            if (!jerseyNumber) return;
+            if (jerseyNumber === null) return;
 
+            const game = DataModel.getCurrentGame();
+            const playerName = game.playerNames[jerseyNumber] || `Player`;
+
+            // Add event
             EventManager.addEvent(jerseyNumber, 'stat', {
                 statData: { type: statType }
             });
+
+            // Show 2-second text overlay on canvas
+            const statName = {
+                'REB': 'a rebound',
+                'AST': 'an assist',
+                'STL': 'a steal',
+                'BLK': 'a block',
+                'TO': 'a turnover'
+            }[statType] || statType;
+
+            this.showCourtOverlay(`#${jerseyNumber} ${playerName} made ${statName}`);
+        },
+
+        /**
+         * Handle foul button (+FOUL or +TECH)
+         */
+        handleFoulButton(foulType) {
+            const appState = DataModel.getAppState();
+            const jerseyNumber = appState.selectedJersey;
+            if (jerseyNumber === null) return;
+
+            const game = DataModel.getCurrentGame();
+            const playerName = game.playerNames[jerseyNumber] || `Player`;
+
+            // Map FOUL -> P (personal foul), TECH -> T (technical foul)
+            // For personal fouls, find the next available P slot (P1-P5)
+            // For tech fouls, find the next available T slot (T1-T2)
+            const statsCache = DataModel.getPlayerStatsCache();
+            const playerStats = statsCache[jerseyNumber] || {};
+            const currentActiveFouls = playerStats.FOULS?.activeFouls || {};
+
+            let foulEventType;
+            if (foulType === 'FOUL') {
+                // Find next available personal foul slot (P1-P5)
+                for (let i = 1; i <= 5; i++) {
+                    if (!currentActiveFouls[`P${i}`]) {
+                        foulEventType = `P${i}`;
+                        break;
+                    }
+                }
+                if (!foulEventType) {
+                    // All 5 personal fouls already assigned
+                    this.showCourtOverlay(`#${jerseyNumber} ${playerName} already has 5 personal fouls`);
+                    return;
+                }
+            } else if (foulType === 'TECH') {
+                // Find next available tech foul slot (T1-T2)
+                for (let i = 1; i <= 2; i++) {
+                    if (!currentActiveFouls[`T${i}`]) {
+                        foulEventType = `T${i}`;
+                        break;
+                    }
+                }
+                if (!foulEventType) {
+                    // All 2 tech fouls already assigned
+                    this.showCourtOverlay(`#${jerseyNumber} ${playerName} already has 2 technical fouls`);
+                    return;
+                }
+            }
+
+            // Add foul event
+            EventManager.addEvent(jerseyNumber, 'foul', {
+                foulData: { type: foulEventType }
+            });
+
+            // Show 2-second text overlay on canvas
+            const foulName = foulType === 'FOUL' ? 'a personal foul' : 'a technical foul';
+            this.showCourtOverlay(`#${jerseyNumber} ${playerName} committed ${foulName}`);
         },
 
         /**
@@ -330,8 +416,9 @@ const UI = (() => {
             const recentEvents = activeEvents.slice(-30).reverse();
 
             container.innerHTML = recentEvents.map(event => {
-                const playerName = game.playerNames[event.playerNumber] || `#${event.playerNumber}`;
-                const sentence = Formatters.formatEventToSentence(event, playerName);
+                const playerName = game.playerNames[event.playerNumber] || `Player`;
+                const jerseyAndName = `#${event.playerNumber} ${playerName}`;
+                const sentence = Formatters.formatEventToSentence(event, jerseyAndName);
                 const className = event.edited ? 'edited' : '';
                 return `<div class="action-item ${className}" onclick="UI.handleActionClick(${event.eventIndex})">${sentence}</div>`;
             }).join('');
@@ -376,6 +463,7 @@ const UI = (() => {
                             <th>#</th>
                             <th>Name</th>
                             <th>PTS</th>
+                            <th>FLS</th>
                             <th>FT</th>
                             <th>FG</th>
                             <th>3PT</th>
@@ -384,7 +472,6 @@ const UI = (() => {
                             <th>STL</th>
                             <th>BLK</th>
                             <th>TO</th>
-                            <th>FLS</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -396,6 +483,7 @@ const UI = (() => {
                         <td>${player.jerseyNumber}</td>
                         <td>${player.name}</td>
                         <td>${player.PTS}</td>
+                        <td>${player.FOULS.total}</td>
                         <td>${Formatters.formatFT(player.FT)}</td>
                         <td>${Formatters.formatFG(player.FG)}</td>
                         <td>${Formatters.format3PT(player['3PT'])}</td>
@@ -404,7 +492,6 @@ const UI = (() => {
                         <td>${player.STL}</td>
                         <td>${player.BLK}</td>
                         <td>${player.TO}</td>
-                        <td>${player.FOULS.total}</td>
                     </tr>
                 `;
             });
@@ -414,6 +501,7 @@ const UI = (() => {
                     <tr class="team-total">
                         <td colspan="2">TEAM TOTAL</td>
                         <td>${teamStats.PTS}</td>
+                        <td>${teamStats.FOULS.total}</td>
                         <td>${Formatters.formatFT(teamStats.FT)}</td>
                         <td>${Formatters.formatFG(teamStats.FG)}</td>
                         <td>${Formatters.format3PT(teamStats['3PT'])}</td>
@@ -422,7 +510,6 @@ const UI = (() => {
                         <td>${teamStats.STL}</td>
                         <td>${teamStats.BLK}</td>
                         <td>${teamStats.TO}</td>
-                        <td>${teamStats.FOULS.total}</td>
                     </tr>
                 </tbody>
             </table>
@@ -434,57 +521,187 @@ const UI = (() => {
         /**
          * Render canvas
          */
-        renderCanvas() {
+        renderCanvas(hideShots = false) {
             const canvasData = CourtRenderer.initializeShotsMapCanvas();
             if (canvasData) {
-                ShotRenderer.drawShots(canvasData.ctx, canvasData.canvasWidth, canvasData.canvasHeight);
+                if (!hideShots) {
+                    ShotRenderer.drawShots(canvasData.ctx, canvasData.canvasWidth, canvasData.canvasHeight);
+                }
 
                 // Setup canvas interactions
                 CanvasInteraction.setupCanvasInteractions(
                     canvasData.canvas,
-                    (normalizedX, normalizedY) => this.handleLongPress(normalizedX, normalizedY),
-                    (x, y) => this.handleTap(x, y)
+                    (normalizedX, normalizedY) => this.handleCanvasTap(normalizedX, normalizedY),
+                    (x, y) => this.handleCanvasTap(x, y)
                 );
             }
         },
 
         /**
-         * Handle long press on canvas
+         * Handle tap on canvas
          */
-        handleLongPress(normalizedX, normalizedY) {
+        handleCanvasTap(x, y) {
+            // Only handle shot drawing mode
+            const drawRow = document.getElementById('draw-row');
+            if (drawRow && drawRow.style.display !== 'none') {
+                this.handleShotDrawn(x, y);
+            }
+        },
+
+        /**
+         * Show Draw Row
+         */
+        showDrawRow(jerseyNumber, points, made) {
+            const game = DataModel.getCurrentGame();
+            const playerName = game.playerNames[jerseyNumber] || 'Player';
+            const shotName = points === 1 ? 'free throw' : points === 3 ? '3pt' : '2pt';
+            const result = made ? 'made' : 'missed';
+
+            const drawText = document.getElementById('draw-text');
+            const drawRow = document.getElementById('draw-row');
+
+            drawText.textContent = `#${jerseyNumber} ${playerName} ${result} a ${shotName}, tap anywhere on court to record the shot`;
+            drawRow.style.display = 'flex';
+        },
+
+        /**
+         * Hide Draw Row
+         */
+        hideDrawRow() {
+            const drawRow = document.getElementById('draw-row');
+            drawRow.style.display = 'none';
+
+            const appState = DataModel.getAppState();
+            appState.selectedShotType = null;
+            appState.pendingShot = null;
+
+            // Re-render canvas to show all shots
+            this.renderCanvas();
+        },
+
+        /**
+         * Handle shot drawn on canvas
+         */
+        handleShotDrawn(normalizedX, normalizedY) {
+            const appState = DataModel.getAppState();
+            const shotType = appState.selectedShotType;
+
+            if (!shotType) return;
+
+            // Store pending shot with adjusted location
+            const adjustedLocation = ShotRenderer.adjustShotLocation(
+                normalizedX,
+                normalizedY,
+                shotType.shotType
+            );
+
+            appState.pendingShot = {
+                normalizedX: adjustedLocation.x,
+                normalizedY: adjustedLocation.y,
+                ...shotType
+            };
+
+            // Draw the pending shot on canvas
+            this.renderPendingShot();
+        },
+
+        /**
+         * Render pending shot on canvas
+         */
+        renderPendingShot() {
+            const appState = DataModel.getAppState();
+            if (!appState.pendingShot) return;
+
+            const canvasData = CourtRenderer.initializeShotsMapCanvas();
+            if (!canvasData) return;
+
+            const x = appState.pendingShot.normalizedX * canvasData.canvasWidth;
+            const y = appState.pendingShot.normalizedY * canvasData.canvasHeight;
+
+            ShotRenderer.drawSingleShot(
+                canvasData.ctx,
+                x,
+                y,
+                appState.pendingShot.made,
+                appState.pendingShot.shotType,
+                appState.pendingShot.points
+            );
+        },
+
+        /**
+         * Handle Redraw button
+         */
+        handleRedraw() {
+            const appState = DataModel.getAppState();
+            appState.pendingShot = null;
+
+            // Clear canvas and redraw court only
+            this.renderCanvas(true); // hideShots = true
+        },
+
+        /**
+         * Handle Done button
+         */
+        handleDone() {
             const appState = DataModel.getAppState();
             const jerseyNumber = appState.selectedJersey;
-            const selectedShotType = appState.selectedShotType;
+            const pendingShot = appState.pendingShot;
 
-            if (!jerseyNumber || !selectedShotType) {
-                alert('Please select a player and shot type first');
+            if (!pendingShot) {
+                alert('Please tap on the court to place the shot first');
                 return;
             }
-
-            // Parse shot type
-            const made = selectedShotType.startsWith('+');
-            const points = parseInt(selectedShotType.match(/\d+/)[0]);
-            const shotType = points === 1 ? 'FT' : points === 3 ? '3PT' : 'FG';
 
             // Add shot event with location
             EventManager.addEvent(jerseyNumber, 'shot', {
                 shotData: {
-                    made,
-                    shotType,
-                    location: { x: normalizedX, y: normalizedY }
+                    made: pendingShot.made,
+                    shotType: pendingShot.shotType,
+                    location: {
+                        x: pendingShot.normalizedX,
+                        y: pendingShot.normalizedY
+                    }
                 }
             });
 
-            // Clear selected shot type
-            appState.selectedShotType = null;
+            // Hide Draw Row and render normally
+            this.hideDrawRow();
+            this.render();
         },
 
         /**
-         * Handle tap on canvas
+         * Handle Cancel button
          */
-        handleTap(x, y) {
-            // TODO: Show player info for shot at this location
-            console.log('Tap at', x, y);
+        handleCancel() {
+            this.hideDrawRow();
+        },
+
+        /**
+         * Show text overlay on court
+         */
+        showCourtOverlay(text) {
+            const canvasData = CourtRenderer.initializeShotsMapCanvas();
+            if (!canvasData) return;
+
+            const ctx = canvasData.ctx;
+            const width = canvasData.canvasWidth;
+            const height = canvasData.canvasHeight;
+
+            // Draw semi-transparent overlay
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+            ctx.fillRect(0, 0, width, height);
+
+            // Draw text
+            ctx.font = 'bold 24px Arial';
+            ctx.fillStyle = '#fff';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(text, width / 2, height / 2);
+
+            // Fade out after 2 seconds
+            setTimeout(() => {
+                this.renderCanvas();
+            }, 2000);
         }
     };
 })();

@@ -32,6 +32,7 @@ const ActionCorrectionUI = (() => {
                         <div class="current-action">
                             <strong>Current:</strong> ${Formatters.formatEventToSentence(event, playerName)}
                         </div>
+                        <p class="change-to-label">Change to:</p>
                         <div id="correction-buttons" class="correction-buttons"></div>
                     </div>
                     <div class="modal-footer">
@@ -71,82 +72,65 @@ const ActionCorrectionUI = (() => {
             let buttons = '';
 
             if (event.action === 'shot') {
-                // Shot correction buttons
+                // Shot correction buttons - one per row with descriptive text
                 buttons = `
                     <div class="correction-row">
                         <button onclick="ActionCorrectionUI.handleCorrection(${event.eventIndex}, 'shot', {made: true, shotType: 'FT'})" class="correction-btn">
-                            +1 (Make FT)
+                            Made a free throw
                         </button>
+                    </div>
+                    <div class="correction-row">
                         <button onclick="ActionCorrectionUI.handleCorrection(${event.eventIndex}, 'shot', {made: false, shotType: 'FT'})" class="correction-btn">
-                            Miss 1 (Miss FT)
+                            Missed a free throw
                         </button>
                     </div>
                     <div class="correction-row">
                         <button onclick="ActionCorrectionUI.handleCorrection(${event.eventIndex}, 'shot', {made: true, shotType: 'FG'})" class="correction-btn">
-                            +2 (Make FG)
+                            Made a field goal
                         </button>
+                    </div>
+                    <div class="correction-row">
                         <button onclick="ActionCorrectionUI.handleCorrection(${event.eventIndex}, 'shot', {made: false, shotType: 'FG'})" class="correction-btn">
-                            Miss 2 (Miss FG)
+                            Missed a field goal
                         </button>
                     </div>
                     <div class="correction-row">
                         <button onclick="ActionCorrectionUI.handleCorrection(${event.eventIndex}, 'shot', {made: true, shotType: '3PT'})" class="correction-btn">
-                            +3 (Make 3PT)
+                            Made a 3-pointer
                         </button>
+                    </div>
+                    <div class="correction-row">
                         <button onclick="ActionCorrectionUI.handleCorrection(${event.eventIndex}, 'shot', {made: false, shotType: '3PT'})" class="correction-btn">
-                            Miss 3 (Miss 3PT)
+                            Missed a 3-pointer
                         </button>
                     </div>
                 `;
             } else if (event.action === 'stat') {
-                // Stat correction buttons
-                buttons = `
-                    <div class="correction-row">
-                        <button onclick="ActionCorrectionUI.handleCorrection(${event.eventIndex}, 'stat', {type: 'REB'})" class="correction-btn">
-                            +REB
-                        </button>
-                        <button onclick="ActionCorrectionUI.handleDeleteStat(${event.eventIndex})" class="correction-btn btn-danger">
-                            -REB
-                        </button>
-                    </div>
-                    <div class="correction-row">
-                        <button onclick="ActionCorrectionUI.handleCorrection(${event.eventIndex}, 'stat', {type: 'AST'})" class="correction-btn">
-                            +AST
-                        </button>
-                        <button onclick="ActionCorrectionUI.handleDeleteStat(${event.eventIndex})" class="correction-btn btn-danger">
-                            -AST
-                        </button>
-                    </div>
-                    <div class="correction-row">
-                        <button onclick="ActionCorrectionUI.handleCorrection(${event.eventIndex}, 'stat', {type: 'STL'})" class="correction-btn">
-                            +STL
-                        </button>
-                        <button onclick="ActionCorrectionUI.handleDeleteStat(${event.eventIndex})" class="correction-btn btn-danger">
-                            -STL
-                        </button>
-                    </div>
-                    <div class="correction-row">
-                        <button onclick="ActionCorrectionUI.handleCorrection(${event.eventIndex}, 'stat', {type: 'BLK'})" class="correction-btn">
-                            +BLK
-                        </button>
-                        <button onclick="ActionCorrectionUI.handleDeleteStat(${event.eventIndex})" class="correction-btn btn-danger">
-                            -BLK
-                        </button>
-                    </div>
-                    <div class="correction-row">
-                        <button onclick="ActionCorrectionUI.handleCorrection(${event.eventIndex}, 'stat', {type: 'TO'})" class="correction-btn">
-                            +TO
-                        </button>
-                        <button onclick="ActionCorrectionUI.handleDeleteStat(${event.eventIndex})" class="correction-btn btn-danger">
-                            -TO
-                        </button>
-                    </div>
-                `;
+                // Stat correction buttons - only show buttons for other stat types
+                const currentStatType = event.statData?.type;
+                const statTypes = ['REB', 'AST', 'STL', 'BLK', 'TO'];
+                const otherStats = statTypes.filter(type => type !== currentStatType);
+
+                const statNames = {
+                    'REB': 'Made a rebound',
+                    'AST': 'Made an assist',
+                    'STL': 'Made a steal',
+                    'BLK': 'Made a block',
+                    'TO': 'Made a turnover'
+                };
+
+                otherStats.forEach(statType => {
+                    buttons += `
+                        <div class="correction-row">
+                            <button onclick="ActionCorrectionUI.handleCorrection(${event.eventIndex}, 'stat', {type: '${statType}'})" class="correction-btn">
+                                ${statNames[statType]}
+                            </button>
+                        </div>
+                    `;
+                });
             } else if (event.action === 'foul') {
-                // Foul events can only be deleted
-                buttons = `
-                    <p class="info-message">Foul events cannot be corrected. Use the foul buttons to adjust the player's foul count.</p>
-                `;
+                // Foul events - no correction options, only delete
+                buttons = '';
             }
 
             // Always add delete button at the end

@@ -58,12 +58,24 @@ const GameHistoryUI = (() => {
             const container = document.getElementById('game-list');
             if (!container) return;
 
-            if (gameList.length === 0) {
+            // Filter out games that no longer exist in storage
+            const validGames = gameList.filter(game => {
+                if (!game || !game.gameId || !game.gameName || !game.teamName) {
+                    return false;
+                }
+                // Verify the actual game data exists in localStorage
+                const gameData = Storage.loadGame(game.gameId);
+                return gameData !== null;
+            });
+
+            if (validGames.length === 0) {
                 container.innerHTML = '<p class="empty-message">No saved games yet.</p>';
                 return;
             }
 
-            container.innerHTML = gameList.map(game => {
+            const isOnlyOneGame = validGames.length === 1;
+
+            container.innerHTML = validGames.map(game => {
                 const date = new Date(game.timestamp);
                 const lastModified = new Date(game.lastModified);
                 const currentGameId = DataModel.getAppState().currentGameId;
@@ -86,15 +98,13 @@ const GameHistoryUI = (() => {
                             </div>
                         </div>
                         <div class="game-actions">
-                            ${!isCurrent ? `
-                                <button
-                                    onclick="GameHistoryUI.loadGame('${game.gameId}')"
-                                    class="btn-secondary"
-                                    title="Load this game"
-                                >
-                                    <i data-lucide="folder-open"></i> Load
-                                </button>
-                            ` : ''}
+                            <button
+                                onclick="GameHistoryUI.loadGame('${game.gameId}')"
+                                class="btn-secondary"
+                                title="Load this game"
+                            >
+                                <i data-lucide="folder-open"></i> Load
+                            </button>
                             <button
                                 onclick="GameHistoryUI.exportGame('${game.gameId}')"
                                 class="btn-secondary"
@@ -106,7 +116,7 @@ const GameHistoryUI = (() => {
                                 onclick="GameHistoryUI.deleteGame('${game.gameId}')"
                                 class="btn-danger"
                                 title="Delete game"
-                                ${isCurrent ? 'disabled' : ''}
+                                ${isOnlyOneGame ? 'disabled' : ''}
                             >
                                 <i data-lucide="trash-2"></i> Delete
                             </button>
@@ -125,11 +135,16 @@ const GameHistoryUI = (() => {
          * Load a game
          */
         loadGame(gameId) {
-            if (confirm('Load this game? Current game will be saved.')) {
-                GameManager.loadGame(gameId);
+            const appState = DataModel.getAppState();
+            if (appState.currentGameId === gameId) {
+                // Already loaded, just close modal
                 this.close();
-                UI.render();
+                return;
             }
+
+            // Load game (automatically saves current game first)
+            GameManager.loadGame(gameId);
+            this.close();
         },
 
         /**
@@ -143,8 +158,30 @@ const GameHistoryUI = (() => {
          * Delete a game
          */
         deleteGame(gameId) {
+            const gameList = Storage.getGameList();
+
+            // Prevent deleting if it's the only game
+            if (gameList.length === 1) {
+                alert('Cannot delete the only game. Create a new game first.');
+                return;
+            }
+
             if (confirm('Are you sure you want to delete this game? This cannot be undone.')) {
-                GameManager.deleteGame(gameId);
+                const appState = DataModel.getAppState();
+                const isCurrentGame = appState.currentGameId === gameId;
+
+                // If deleting current game, load most recent other game
+                if (isCurrentGame) {
+                    const otherGames = gameList.filter(g => g.gameId !== gameId);
+                    if (otherGames.length > 0) {
+                        // Load most recently modified game
+                        const mostRecent = otherGames.sort((a, b) => b.lastModified - a.lastModified)[0];
+                        GameManager.loadGame(mostRecent.gameId);
+                    }
+                }
+
+                // Delete the game
+                Storage.deleteGame(gameId);
                 this.renderGameList();
             }
         }

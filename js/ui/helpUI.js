@@ -39,27 +39,31 @@ const HelpUI = (() => {
                                 <li>Previously set fouls remain highlighted when you select the player again</li>
                             </ul>
 
-                            <h4>Shots - Quick Entry</h4>
+                            <h4>Shots - Recording on Court</h4>
                             <ul>
-                                <li>Select a player</li>
-                                <li>Click a shot button (+1, +2, +3, Miss 1, Miss 2, Miss 3)</li>
-                                <li>Shot is recorded immediately</li>
+                                <li>Select a player by clicking their jersey number</li>
+                                <li>Click a shot button (Made FT, Made FG, Made 3PT, Miss FT, Miss FG, Miss 3PT)</li>
+                                <li>A yellow <strong>Draw Row</strong> appears with instructions</li>
+                                <li><strong>Tap</strong> on the court canvas where the shot was taken</li>
+                                <li>Preview the shot location (green circle for made, red X for missed)</li>
+                                <li>Click <strong>Done</strong> to save, <strong>Redraw</strong> to adjust, or <strong>Cancel</strong> to discard</li>
+                                <li>Shots are sized by type: FT (small black), FG (medium), 3PT (large blue for made)</li>
                             </ul>
 
-                            <h4>Shots - With Court Location</h4>
+                            <h4>Shot Display</h4>
                             <ul>
-                                <li>Select a player</li>
-                                <li>Click a shot button to set the shot type</li>
-                                <li><strong>Long-press</strong> (1.5 seconds) on the court where the shot was taken</li>
-                                <li>A blue shrinking circle shows the progress</li>
-                                <li>Shot appears as a green circle (made) or red X (missed)</li>
+                                <li><strong>Made shots</strong>: Filled circles (green for FG/FT, blue for 3PT)</li>
+                                <li><strong>Missed shots</strong>: Red X marks</li>
+                                <li><strong>Free throws</strong>: Auto-snap to FT line positions, shown in black</li>
+                                <li><strong>Tap a shot</strong> in view mode to see player info</li>
+                                <li>Shots auto-adjust to avoid overlapping</li>
                             </ul>
 
                             <h4>Other Stats</h4>
                             <ul>
                                 <li>Select a player</li>
                                 <li>Click stat buttons: +REB, +AST, +STL, +BLK, +TO</li>
-                                <li>Stat is recorded with a 2-second animation</li>
+                                <li>A 2-second animation shows the stat was recorded</li>
                             </ul>
                         </section>
 
@@ -96,25 +100,36 @@ const HelpUI = (() => {
 
                         <section class="help-section">
                             <h3>Game Management</h3>
-                            <h4>New Game</h4>
-                            <ul>
-                                <li>Click <strong>New Game</strong> to start a new game</li>
-                                <li>Current game is saved automatically</li>
-                                <li>Team roster and names are preserved</li>
-                            </ul>
+                            <p>All game management buttons are located in the <strong>Game Management</strong> section on the front page.</p>
 
-                            <h4>Game History</h4>
+                            <h4>History</h4>
                             <ul>
-                                <li>Click <strong>Settings → Game History</strong></li>
                                 <li>View all saved games with scores and dates</li>
-                                <li>Load, export, or delete any game</li>
+                                <li><strong>Load</strong>: Switch to a different game (enters view mode)</li>
+                                <li><strong>Export</strong>: Download a specific game as JSON</li>
+                                <li><strong>Delete</strong>: Remove a game (cannot delete the only game)</li>
                             </ul>
 
                             <h4>Export & Import</h4>
                             <ul>
-                                <li><strong>Export</strong>: Download game as JSON file</li>
+                                <li><strong>Export</strong>: Download current game as JSON file</li>
                                 <li><strong>Import</strong>: Load a game from JSON file</li>
                                 <li>Use for backups or sharing games</li>
+                            </ul>
+
+                            <h4>Clear Game</h4>
+                            <ul>
+                                <li>Removes all events from the current game</li>
+                                <li>Team roster and player names are preserved</li>
+                                <li>Cannot be undone - use with caution!</li>
+                            </ul>
+
+                            <h4>New Game</h4>
+                            <ul>
+                                <li>Start a new game with a fresh event log</li>
+                                <li>Current game is saved automatically</li>
+                                <li>Team roster and names are preserved</li>
+                                <li>Enters edit mode by default</li>
                             </ul>
                         </section>
 

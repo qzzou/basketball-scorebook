@@ -12,6 +12,16 @@ body {
     color: #333;
 }
 
+/* Lucide Icons - Ensure all icons have visible strokes */
+i[data-lucide],
+svg.lucide {
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    fill: none;
+}
+
 /* Header */
 .app-header {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -55,6 +65,25 @@ section h2 {
     color: #667eea;
 }
 
+.help-text {
+    font-size: 0.85rem;
+    color: #666;
+    margin-bottom: 0.5rem;
+    font-style: italic;
+}
+
+/* Section Header (for Shot Map with controls) */
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.section-header h2 {
+    margin-bottom: 0;
+}
+
 /* Buttons */
 button {
     cursor: pointer;
@@ -85,7 +114,7 @@ button:disabled {
 
 .icon-btn {
     background: transparent;
-    border: 1px solid rgba(255, 255, 255, 0.3);
+    border: none;
     padding: 0.5rem;
     width: 40px;
     height: 40px;
@@ -100,7 +129,6 @@ button:disabled {
 
 .icon-btn.active {
     background: rgba(255, 255, 255, 0.2);
-    border-color: white;
 }
 
 .btn-primary {
@@ -110,33 +138,30 @@ button:disabled {
 }
 
 /* Jersey Row */
-.jersey-controls {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1rem;
-    gap: 1rem;
-}
-
 .jersey-row {
     display: flex;
     gap: 0.5rem;
-    flex-wrap: wrap;
-    flex: 1;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    margin-bottom: 1rem;
 }
 
 .jersey-btn {
-    background: #f0f0f0;
-    color: #333;
+    background: transparent !important;
+    color: #333 !important;
     padding: 0.5rem;
     min-width: 50px;
-    border: 2px solid transparent;
+    border: 2px solid #ddd;
+}
+
+.jersey-btn:hover {
+    background: #f5f5f5 !important;
 }
 
 .jersey-btn.selected {
-    background: #667eea;
-    color: white;
-    border-color: #5568d3;
+    background: #667eea !important;
+    color: white !important;
+    border-color: #667eea;
 }
 
 .control-buttons {
@@ -145,7 +170,6 @@ button:disabled {
 }
 
 .control-buttons .icon-btn {
-    border-color: #ddd;
     color: #667eea;
 }
 
@@ -156,7 +180,6 @@ button:disabled {
 .control-buttons .icon-btn.active {
     background: #667eea;
     color: white;
-    border-color: #667eea;
 }
 
 /* Stat Row */
@@ -169,14 +192,18 @@ button:disabled {
 
 .foul-buttons {
     display: flex;
-    gap: 0.5rem;
-    flex-wrap: wrap;
+    gap: 0.4rem;
+    flex-wrap: nowrap;
+    justify-content: flex-start;
 }
 
 .foul-buttons button {
     background: #f0f0f0;
     color: #333;
-    min-width: 50px;
+    min-width: 45px;
+    padding: 0.5rem 0.6rem;
+    font-size: 0.85rem;
+    flex: 0 0 auto;
 }
 
 .foul-buttons button.active {
@@ -184,37 +211,99 @@ button:disabled {
     color: white;
 }
 
+.foul-buttons button.tech-foul {
+    background: #f0f0f0 !important;
+    color: #333 !important;
+}
+
+.foul-buttons button.tech-foul.active {
+    background: #ffc107 !important;
+    color: #000 !important;
+}
+
 .stats-display {
     display: flex;
-    gap: 1rem;
-    flex-wrap: wrap;
+    gap: 0.5rem;
+    flex-wrap: nowrap;
+    overflow-x: auto;
 }
 
 .stat {
     text-align: center;
+    min-width: 42px;
+    flex-shrink: 0;
 }
 
 .stat .value {
-    font-size: 1.25rem;
+    font-size: 0.95rem;
     font-weight: bold;
     color: #667eea;
 }
 
 .stat .label {
-    font-size: 0.75rem;
+    font-size: 0.65rem;
     color: #666;
     text-transform: uppercase;
 }
 
-.action-buttons {
+/* Action Buttons Container */
+.action-buttons-container {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.shot-buttons-row,
+.stat-buttons-row {
     display: flex;
     gap: 0.5rem;
     flex-wrap: wrap;
 }
 
-.action-buttons button {
+.action-btn {
     flex: 1;
     min-width: 80px;
+    background: #a8b5f0 !important; /* Lighter blue for unselected */
+    color: white !important;
+    padding: 0.6rem 0.8rem;
+    font-size: 0.85rem;
+}
+
+.action-btn:hover {
+    background: #8899e8 !important;
+}
+
+.action-btn:active {
+    background: #667eea !important; /* Darker blue when pressed */
+}
+
+/* Foul button styles */
+.action-btn.foul-btn {
+    background: #ffcccc !important; /* Light red for unselected */
+}
+
+.action-btn.foul-btn:hover {
+    background: #ffaaaa !important;
+}
+
+.action-btn.foul-btn:active {
+    background: #ff0000 !important; /* Bright red when pressed */
+}
+
+/* Tech foul button styles */
+.action-btn.tech-btn {
+    background: #fff9cc !important; /* Light yellow for unselected */
+    color: #333 !important; /* Dark text for better contrast on yellow */
+}
+
+.action-btn.tech-btn:hover {
+    background: #fff380 !important;
+    color: #333 !important;
+}
+
+.action-btn.tech-btn:active {
+    background: #ffff00 !important; /* Bright yellow when pressed */
+    color: #333 !important;
 }
 
 /* Court Canvas */
@@ -226,6 +315,102 @@ button:disabled {
     border-radius: 8px;
     overflow: hidden;
     background: #f8f9fa;
+}
+
+/* Mobile portrait optimizations */
+@media (max-width: 768px) and (orientation: portrait) {
+    .court-container {
+        width: calc(100% + 2rem);
+        margin-left: -1rem;
+        margin-right: -1rem;
+        border-radius: 0;
+        border-left: none;
+        border-right: none;
+        max-width: none;
+    }
+
+    section {
+        padding: 1rem;
+    }
+
+    .app-container {
+        padding: 0.5rem;
+    }
+}
+
+/* Landscape mode optimizations */
+@media (orientation: landscape) and (max-height: 768px) {
+    .app-header {
+        padding: 0.5rem 1rem;
+    }
+
+    .app-header h1 {
+        font-size: 1.2rem;
+    }
+
+    .app-container {
+        padding: 0.5rem;
+    }
+
+    section {
+        padding: 0.75rem;
+        margin-bottom: 0.75rem;
+    }
+
+    .shot-map-section {
+        max-height: calc(100vh - 80px);
+        overflow-y: auto;
+    }
+
+    .section-header h2 {
+        font-size: 1.1rem;
+    }
+
+    .stat-row {
+        gap: 0.5rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .stats-display {
+        gap: 0.5rem;
+    }
+
+    .stat .value {
+        font-size: 1rem;
+    }
+
+    .stat .label {
+        font-size: 0.65rem;
+    }
+
+    .action-buttons-container {
+        gap: 0.5rem;
+    }
+
+    .shot-buttons-row,
+    .stat-buttons-row {
+        gap: 0.4rem;
+    }
+
+    .action-btn {
+        padding: 0.4rem 0.6rem;
+        font-size: 0.8rem;
+        min-width: 70px;
+    }
+
+    .foul-buttons button {
+        padding: 0.4rem 0.2rem;
+        font-size: 0.8rem;
+    }
+
+    .draw-row {
+        padding: 0.5rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .court-container {
+        margin-bottom: 0.5rem;
+    }
 }
 
 #shots-map-canvas {
@@ -724,22 +909,32 @@ button:disabled {
 }
 
 .correction-row {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0.75rem;
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
 }
 
 .correction-row.delete-row {
-    grid-template-columns: 1fr;
+    margin-top: 0.75rem;
 }
 
 .correction-btn {
-    padding: 0.75rem 1rem;
+    padding: 0.5rem 0.75rem;
     min-width: 0;
+    width: 100%;
+    text-align: left;
+    font-size: 0.9rem;
 }
 
 .correction-btn.full-width {
     width: 100%;
+}
+
+.change-to-label {
+    font-weight: 600;
+    color: #667eea;
+    margin: 0.75rem 0 0.35rem 0;
+    font-size: 0.9rem;
 }
 
 .info-message {
@@ -843,5 +1038,97 @@ button:disabled {
     .help-section ul,
     .help-section ol {
         margin-left: 1rem;
+    }
+}
+
+/* Draw Row */
+.draw-row {
+    background: #fff3cd;
+    border: 2px solid #ffc107;
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+}
+
+.draw-text {
+    flex: 1;
+    font-weight: 500;
+    color: #856404;
+}
+
+.draw-buttons {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.draw-buttons button {
+    white-space: nowrap;
+}
+
+/* Game Management */
+.game-management {
+    background: white;
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.game-management button {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.game-management button i {
+    width: 16px;
+    height: 16px;
+}
+
+
+/* Warning stats (TO and FLS in red) */
+.stat-warning {
+    color: #dc3545 !important;
+    font-weight: 600;
+}
+
+.stat.stat-warning .value {
+    color: #dc3545 !important;
+}
+
+.stat.stat-warning .label {
+    color: #dc3545 !important;
+}
+
+/* Mobile responsive for new elements */
+@media (max-width: 768px) {
+    .draw-row {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .draw-buttons {
+        justify-content: stretch;
+    }
+
+    .draw-buttons button {
+        flex: 1;
+    }
+
+    .game-management {
+        padding: 1rem;
+    }
+
+    .game-management button {
+        flex: 1 1 calc(50% - 0.375rem);
+        min-width: 120px;
     }
 }

@@ -14,7 +14,7 @@ const GameManager = (() => {
             if (lastGameId) {
                 const game = Storage.loadGame(lastGameId);
                 if (game) {
-                    this.loadGame(lastGameId);
+                    this.loadGameInEditMode(lastGameId);
                     console.log('Loaded last game:', game.gameName);
                     return;
                 }
@@ -58,8 +58,9 @@ const GameManager = (() => {
             // Clear stats cache
             DataModel.clearPlayerStatsCache();
 
-            // Reset app state
+            // Reset app state and set to edit mode
             DataModel.resetAppState();
+            DataModel.switchToEditMode();
 
             // Save new game
             Storage.saveGame(newGame);
@@ -71,7 +72,45 @@ const GameManager = (() => {
         },
 
         /**
-         * Load an existing game
+         * Load an existing game (for page initialization - loads in edit mode)
+         * @param {string} gameId - Game ID to load
+         */
+        loadGameInEditMode(gameId) {
+            // Save current game first
+            const currentGame = DataModel.getCurrentGame();
+            if (currentGame) {
+                Storage.saveGame(currentGame);
+            }
+
+            // Load game
+            const game = Storage.loadGame(gameId);
+            if (!game) {
+                console.error('Game not found:', gameId);
+                return false;
+            }
+
+            // Set as current game
+            DataModel.setCurrentGame(game);
+
+            // Reset app state and set to edit mode
+            DataModel.resetAppState();
+            DataModel.switchToEditMode();
+
+            // Update stats cache
+            StatCalculator.updateStatsCache(
+                game.teamRoster,
+                game.gameEvents,
+                game.playerNames
+            );
+
+            // Emit event
+            EventBus.emit('game:loaded', game);
+
+            return true;
+        },
+
+        /**
+         * Load an existing game (switches to view mode)
          * @param {string} gameId - Game ID to load
          */
         loadGame(gameId) {
@@ -94,6 +133,9 @@ const GameManager = (() => {
             // Reset app state
             DataModel.resetAppState();
 
+            // Switch to view mode
+            this.switchToViewMode();
+
             // Update stats cache
             StatCalculator.updateStatsCache(
                 game.teamRoster,
@@ -105,6 +147,39 @@ const GameManager = (() => {
             EventBus.emit('game:loaded', game);
 
             return true;
+        },
+
+        /**
+         * Clear all events from current game
+         */
+        clearCurrentGame() {
+            const game = DataModel.getCurrentGame();
+            if (!game) return;
+
+            // Clear all events
+            game.gameEvents = [];
+            game.lastModified = Date.now();
+
+            // Clear stats cache
+            DataModel.clearPlayerStatsCache();
+
+            // Update stats cache (will be empty)
+            StatCalculator.updateStatsCache(
+                game.teamRoster,
+                game.gameEvents,
+                game.playerNames
+            );
+
+            // Reset app state and switch to edit mode
+            DataModel.resetAppState();
+            DataModel.switchToEditMode();
+
+            // Save game
+            Storage.saveGame(game);
+
+            // Emit events to trigger re-render
+            EventBus.emit('game:loaded', game);
+            EventBus.emit('stats:updated');
         },
 
         /**
@@ -213,6 +288,17 @@ const GameManager = (() => {
          * Switch to view mode
          */
         switchToViewMode() {
+            // Hide Draw Row if visible
+            const drawRow = document.getElementById('draw-row');
+            if (drawRow) {
+                drawRow.style.display = 'none';
+            }
+
+            // Clear pending shot state
+            const appState = DataModel.getAppState();
+            appState.selectedShotType = null;
+            appState.pendingShot = null;
+
             DataModel.switchToViewMode();
             EventBus.emit('mode:changed', 'view');
         },

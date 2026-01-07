@@ -17,6 +17,12 @@
         // Initialize UI
         UI.init();
 
+        // Ensure edit button is visually active on load
+        const editBtn = document.getElementById('edit-btn');
+        const viewBtn = document.getElementById('view-btn');
+        if (editBtn) editBtn.classList.add('active');
+        if (viewBtn) viewBtn.classList.remove('active');
+
         console.log('Basketball Scorebook 2.0 - Ready!');
     });
 
@@ -24,16 +30,6 @@
      * Setup button handlers
      */
     function setupButtonHandlers() {
-        // New Game button
-        const newGameBtn = document.getElementById('new-game-btn');
-        if (newGameBtn) {
-            newGameBtn.onclick = () => {
-                if (confirm('Create a new game? Current game will be saved.')) {
-                    GameManager.createNewGame(true); // Keep roster
-                }
-            };
-        }
-
         // Undo button
         const undoBtn = document.getElementById('undo-btn');
         if (undoBtn) {
@@ -82,6 +78,61 @@
         const helpBtn = document.getElementById('help-btn');
         if (helpBtn) {
             helpBtn.onclick = () => HelpUI.show();
+        }
+
+        // Draw Row buttons
+        const redrawBtn = document.getElementById('redraw-btn');
+        if (redrawBtn) {
+            redrawBtn.onclick = () => UI.handleRedraw();
+        }
+
+        const doneBtn = document.getElementById('done-btn');
+        if (doneBtn) {
+            doneBtn.onclick = () => UI.handleDone();
+        }
+
+        const cancelBtn = document.getElementById('cancel-btn');
+        if (cancelBtn) {
+            cancelBtn.onclick = () => UI.handleCancel();
+        }
+
+        // Game Management buttons
+        const historyBtn = document.getElementById('history-btn');
+        if (historyBtn) {
+            historyBtn.onclick = () => GameHistoryUI.show();
+        }
+
+        const exportBtn = document.getElementById('export-btn');
+        if (exportBtn) {
+            exportBtn.onclick = () => {
+                const game = DataModel.getCurrentGame();
+                if (game) {
+                    Storage.exportGameAsJSON(game.gameId);
+                }
+            };
+        }
+
+        const importBtn = document.getElementById('import-btn');
+        if (importBtn) {
+            importBtn.onclick = () => Storage.importGameFromJSON();
+        }
+
+        const clearGameBtn = document.getElementById('clear-game-btn');
+        if (clearGameBtn) {
+            clearGameBtn.onclick = () => {
+                if (confirm('Clear all events for this game? This cannot be undone.')) {
+                    GameManager.clearCurrentGame();
+                }
+            };
+        }
+
+        const newGameBtn = document.getElementById('new-game-btn');
+        if (newGameBtn) {
+            newGameBtn.onclick = () => {
+                if (confirm('Create a new game? Current game will be saved.')) {
+                    GameManager.createNewGame(true); // Keep roster
+                }
+            };
         }
     }
 
