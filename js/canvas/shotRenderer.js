@@ -41,7 +41,7 @@ const ShotRenderer = (() => {
 
                 if (shot.shotData.shotType === 'FT') {
                     radius = baseRadius * 0.5; // 50% size
-                    color = '#000'; // Black for free throws
+                    color = shot.shotData.made ? '#000' : '#f44336'; // Black for made FT, red for missed
                 } else if (shot.shotData.shotType === '3PT') {
                     radius = baseRadius; // 100% size (same as FG)
                     color = shot.shotData.made ? '#2196F3' : '#f44336'; // Blue for 3PT made
@@ -117,7 +117,7 @@ const ShotRenderer = (() => {
 
             if (shotType === 'FT') {
                 radius = baseRadius * 0.5;
-                color = '#000';
+                color = made ? '#000' : '#f44336'; // Black for made FT, red for missed
             } else if (shotType === '3PT') {
                 radius = baseRadius; // 100% size (same as FG)
                 color = made ? '#2196F3' : '#f44336';

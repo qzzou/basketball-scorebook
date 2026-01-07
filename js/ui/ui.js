@@ -65,7 +65,7 @@ const UI = (() => {
                 if (appState.selectedJersey !== null) {
                     this.renderStatRow(appState.selectedJersey);
                 } else {
-                    document.getElementById('stat-row').innerHTML = '<p>Select a player to begin</p>';
+                    document.getElementById('stat-row').innerHTML = '<p>Select a player above to begin</p>';
                 }
             } else {
                 // View mode - show combined stats
@@ -204,9 +204,16 @@ const UI = (() => {
             );
 
             const playerCount = appState.selectedJerseys.length;
-            const title = playerCount === game.teamRoster.length
-                ? 'All Players'
-                : `${playerCount} Player${playerCount > 1 ? 's' : ''} Selected`;
+            let title;
+            if (playerCount === game.teamRoster.length) {
+                title = 'All Players';
+            } else if (playerCount === 1) {
+                const jerseyNumber = appState.selectedJerseys[0];
+                const playerName = game.playerNames[jerseyNumber] || 'Player';
+                title = `#${jerseyNumber} ${playerName}`;
+            } else {
+                title = `${playerCount} Players Selected`;
+            }
 
             container.innerHTML = `
                 <div class="view-mode-header">
