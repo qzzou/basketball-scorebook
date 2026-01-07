@@ -269,6 +269,13 @@ button:disabled {
     font-size: 0.85rem;
 }
 
+/* Stat buttons: fit at least 4 per row */
+.stat-buttons-row .action-btn {
+    flex: 1 1 calc(25% - 0.375rem); /* 4 buttons per row: 25% width minus gap adjustment */
+    min-width: 60px; /* Reduced to ensure at least 4 buttons fit per row */
+    max-width: calc(25% - 0.375rem); /* Prevent buttons from growing beyond 25% */
+}
+
 .action-btn:hover {
     background: #8899e8 !important;
 }

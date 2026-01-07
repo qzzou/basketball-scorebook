@@ -215,21 +215,46 @@ const UI = (() => {
                 title = `${playerCount} Players Selected`;
             }
 
+            // Build stats HTML conditionally - only include non-zero values
+            let statsHtml = '';
+
+            if (stats.PTS > 0) {
+                statsHtml += `<div class="stat"><div class="value">${stats.PTS}</div><div class="label">PTS</div></div>`;
+            }
+            if (stats.FOULS?.total > 0) {
+                statsHtml += `<div class="stat"><div class="value">${stats.FOULS.total}</div><div class="label">FLS</div></div>`;
+            }
+            if (stats.FT?.attempts > 0) {
+                statsHtml += `<div class="stat"><div class="value">${Formatters.formatFT(stats.FT)}</div><div class="label">FT</div></div>`;
+            }
+            if (stats.FG?.attempts > 0) {
+                statsHtml += `<div class="stat"><div class="value">${Formatters.formatFG(stats.FG)}</div><div class="label">FG</div></div>`;
+            }
+            if (stats['3PT']?.attempts > 0) {
+                statsHtml += `<div class="stat"><div class="value">${Formatters.format3PT(stats['3PT'])}</div><div class="label">3PT</div></div>`;
+            }
+            if (stats.REB > 0) {
+                statsHtml += `<div class="stat"><div class="value">${stats.REB}</div><div class="label">REB</div></div>`;
+            }
+            if (stats.AST > 0) {
+                statsHtml += `<div class="stat"><div class="value">${stats.AST}</div><div class="label">AST</div></div>`;
+            }
+            if (stats.STL > 0) {
+                statsHtml += `<div class="stat"><div class="value">${stats.STL}</div><div class="label">STL</div></div>`;
+            }
+            if (stats.BLK > 0) {
+                statsHtml += `<div class="stat"><div class="value">${stats.BLK}</div><div class="label">BLK</div></div>`;
+            }
+            if (stats.TO > 0) {
+                statsHtml += `<div class="stat"><div class="value">${stats.TO}</div><div class="label">TO</div></div>`;
+            }
+
             container.innerHTML = `
                 <div class="view-mode-header">
                     <h3>${title}</h3>
                 </div>
                 <div class="stats-display">
-                    <div class="stat"><div class="value">${stats.PTS || 0}</div><div class="label">PTS</div></div>
-                    <div class="stat"><div class="value">${stats.FOULS?.total || 0}</div><div class="label">FLS</div></div>
-                    <div class="stat"><div class="value">${Formatters.formatFT(stats.FT || {made:0, attempts:0})}</div><div class="label">FT</div></div>
-                    <div class="stat"><div class="value">${Formatters.formatFG(stats.FG || {made:0, attempts:0})}</div><div class="label">FG</div></div>
-                    <div class="stat"><div class="value">${Formatters.format3PT(stats['3PT'] || {made:0, attempts:0})}</div><div class="label">3PT</div></div>
-                    <div class="stat"><div class="value">${stats.REB || 0}</div><div class="label">REB</div></div>
-                    <div class="stat"><div class="value">${stats.AST || 0}</div><div class="label">AST</div></div>
-                    <div class="stat"><div class="value">${stats.STL || 0}</div><div class="label">STL</div></div>
-                    <div class="stat"><div class="value">${stats.BLK || 0}</div><div class="label">BLK</div></div>
-                    <div class="stat"><div class="value">${stats.TO || 0}</div><div class="label">TO</div></div>
+                    ${statsHtml}
                 </div>
             `;
         },
@@ -244,18 +269,43 @@ const UI = (() => {
             const container = document.getElementById('stat-row');
             if (!container) return;
 
+            // Build stats HTML conditionally - only include non-zero values
+            let statsHtml = '';
+
+            if (stats.PTS > 0) {
+                statsHtml += `<div class="stat"><div class="value">${stats.PTS}</div><div class="label">PTS</div></div>`;
+            }
+            if (stats.FOULS?.total > 0) {
+                statsHtml += `<div class="stat stat-warning"><div class="value">${stats.FOULS.total}</div><div class="label">FLS</div></div>`;
+            }
+            if (stats.FT?.attempts > 0) {
+                statsHtml += `<div class="stat"><div class="value">${Formatters.formatFT(stats.FT)}</div><div class="label">FT</div></div>`;
+            }
+            if (stats.FG?.attempts > 0) {
+                statsHtml += `<div class="stat"><div class="value">${Formatters.formatFG(stats.FG)}</div><div class="label">FG</div></div>`;
+            }
+            if (stats['3PT']?.attempts > 0) {
+                statsHtml += `<div class="stat"><div class="value">${Formatters.format3PT(stats['3PT'])}</div><div class="label">3PT</div></div>`;
+            }
+            if (stats.REB > 0) {
+                statsHtml += `<div class="stat"><div class="value">${stats.REB}</div><div class="label">REB</div></div>`;
+            }
+            if (stats.AST > 0) {
+                statsHtml += `<div class="stat"><div class="value">${stats.AST}</div><div class="label">AST</div></div>`;
+            }
+            if (stats.STL > 0) {
+                statsHtml += `<div class="stat"><div class="value">${stats.STL}</div><div class="label">STL</div></div>`;
+            }
+            if (stats.BLK > 0) {
+                statsHtml += `<div class="stat"><div class="value">${stats.BLK}</div><div class="label">BLK</div></div>`;
+            }
+            if (stats.TO > 0) {
+                statsHtml += `<div class="stat stat-warning"><div class="value">${stats.TO}</div><div class="label">TO</div></div>`;
+            }
+
             container.innerHTML = `
                 <div class="stats-display">
-                    <div class="stat"><div class="value">${stats.PTS || 0}</div><div class="label">PTS</div></div>
-                    <div class="stat stat-warning"><div class="value">${stats.FOULS?.total || 0}</div><div class="label">FLS</div></div>
-                    <div class="stat"><div class="value">${Formatters.formatFT(stats.FT || {made:0, attempts:0})}</div><div class="label">FT</div></div>
-                    <div class="stat"><div class="value">${Formatters.formatFG(stats.FG || {made:0, attempts:0})}</div><div class="label">FG</div></div>
-                    <div class="stat"><div class="value">${Formatters.format3PT(stats['3PT'] || {made:0, attempts:0})}</div><div class="label">3PT</div></div>
-                    <div class="stat"><div class="value">${stats.REB || 0}</div><div class="label">REB</div></div>
-                    <div class="stat"><div class="value">${stats.AST || 0}</div><div class="label">AST</div></div>
-                    <div class="stat"><div class="value">${stats.STL || 0}</div><div class="label">STL</div></div>
-                    <div class="stat"><div class="value">${stats.BLK || 0}</div><div class="label">BLK</div></div>
-                    <div class="stat stat-warning"><div class="value">${stats.TO || 0}</div><div class="label">TO</div></div>
+                    ${statsHtml}
                 </div>
                 <div class="action-buttons-container">
                     <div class="shot-buttons-row">
@@ -489,16 +539,16 @@ const UI = (() => {
                     <tr>
                         <td>${player.jerseyNumber}</td>
                         <td>${player.name}</td>
-                        <td>${player.PTS}</td>
-                        <td>${player.FOULS.total}</td>
-                        <td>${Formatters.formatFT(player.FT)}</td>
-                        <td>${Formatters.formatFG(player.FG)}</td>
-                        <td>${Formatters.format3PT(player['3PT'])}</td>
-                        <td>${player.REB}</td>
-                        <td>${player.AST}</td>
-                        <td>${player.STL}</td>
-                        <td>${player.BLK}</td>
-                        <td>${player.TO}</td>
+                        ${player.PTS > 0 ? `<td>${player.PTS}</td>` : '<td></td>'}
+                        ${player.FOULS.total > 0 ? `<td>${player.FOULS.total}</td>` : '<td></td>'}
+                        ${player.FT.attempts > 0 ? `<td>${Formatters.formatFT(player.FT)}</td>` : '<td></td>'}
+                        ${player.FG.attempts > 0 ? `<td>${Formatters.formatFG(player.FG)}</td>` : '<td></td>'}
+                        ${player['3PT'].attempts > 0 ? `<td>${Formatters.format3PT(player['3PT'])}</td>` : '<td></td>'}
+                        ${player.REB > 0 ? `<td>${player.REB}</td>` : '<td></td>'}
+                        ${player.AST > 0 ? `<td>${player.AST}</td>` : '<td></td>'}
+                        ${player.STL > 0 ? `<td>${player.STL}</td>` : '<td></td>'}
+                        ${player.BLK > 0 ? `<td>${player.BLK}</td>` : '<td></td>'}
+                        ${player.TO > 0 ? `<td>${player.TO}</td>` : '<td></td>'}
                     </tr>
                 `;
             });
@@ -507,16 +557,16 @@ const UI = (() => {
             html += `
                     <tr class="team-total">
                         <td colspan="2">TEAM TOTAL</td>
-                        <td>${teamStats.PTS}</td>
-                        <td>${teamStats.FOULS.total}</td>
-                        <td>${Formatters.formatFT(teamStats.FT)}</td>
-                        <td>${Formatters.formatFG(teamStats.FG)}</td>
-                        <td>${Formatters.format3PT(teamStats['3PT'])}</td>
-                        <td>${teamStats.REB}</td>
-                        <td>${teamStats.AST}</td>
-                        <td>${teamStats.STL}</td>
-                        <td>${teamStats.BLK}</td>
-                        <td>${teamStats.TO}</td>
+                        ${teamStats.PTS > 0 ? `<td>${teamStats.PTS}</td>` : '<td></td>'}
+                        ${teamStats.FOULS.total > 0 ? `<td>${teamStats.FOULS.total}</td>` : '<td></td>'}
+                        ${teamStats.FT.attempts > 0 ? `<td>${Formatters.formatFT(teamStats.FT)}</td>` : '<td></td>'}
+                        ${teamStats.FG.attempts > 0 ? `<td>${Formatters.formatFG(teamStats.FG)}</td>` : '<td></td>'}
+                        ${teamStats['3PT'].attempts > 0 ? `<td>${Formatters.format3PT(teamStats['3PT'])}</td>` : '<td></td>'}
+                        ${teamStats.REB > 0 ? `<td>${teamStats.REB}</td>` : '<td></td>'}
+                        ${teamStats.AST > 0 ? `<td>${teamStats.AST}</td>` : '<td></td>'}
+                        ${teamStats.STL > 0 ? `<td>${teamStats.STL}</td>` : '<td></td>'}
+                        ${teamStats.BLK > 0 ? `<td>${teamStats.BLK}</td>` : '<td></td>'}
+                        ${teamStats.TO > 0 ? `<td>${teamStats.TO}</td>` : '<td></td>'}
                     </tr>
                 </tbody>
             </table>
