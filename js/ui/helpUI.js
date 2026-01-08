@@ -25,24 +25,15 @@ const HelpUI = (() => {
                                 <li>Click <strong>Settings</strong> to set up your team</li>
                                 <li>Enter your team name and select jersey numbers</li>
                                 <li>Add player names for each jersey number</li>
-                                <li>Click <strong>Save Changes</strong></li>
                             </ol>
                         </section>
 
                         <section class="help-section">
                             <h3>Recording Stats</h3>
-                            <h4>Fouls</h4>
-                            <ul>
-                                <li>Select a player by clicking their jersey number</li>
-                                <li>Toggle foul buttons (P1-P5 for personal, T1-T2 for technical)</li>
-                                <li>Each toggle immediately saves the new foul count</li>
-                                <li>Previously set fouls remain highlighted when you select the player again</li>
-                            </ul>
-
                             <h4>Shots - Recording on Court</h4>
                             <ul>
                                 <li>Select a player by clicking their jersey number</li>
-                                <li>Click a shot button (Made FT, Made FG, Made 3PT, Miss FT, Miss FG, Miss 3PT)</li>
+                                <li>Click a shot button (made or missed free throw, field goal, or 3-pointer)</li>
                                 <li>A yellow <strong>Draw Row</strong> appears with instructions</li>
                                 <li><strong>Tap</strong> on the court canvas near where the shot was taken</li>
                                 <li>The shot location will automatically snap to the appropriate zone:
@@ -53,22 +44,21 @@ const HelpUI = (() => {
                                     </ul>
                                 </li>
                                 <li>Preview the shot location (green circle for made, red X for missed)</li>
-                                <li>Click <strong>Done</strong> to save, tap again to adjust location, or click <strong>Cancel</strong> to discard</li>
+                                <li>Tap again to adjust location, or click <strong>Done</strong> to save, or click <strong>Cancel</strong> to discard</li>
                             </ul>
 
                             <h4>Shot Display</h4>
                             <ul>
-                                <li><strong>Made shots</strong>: Filled circles (green for FG/FT, blue for 3PT)</li>
+                                <li><strong>Made shots</strong>: Filled circles (black for FT, green for FG, blue for 3PT)</li>
                                 <li><strong>Missed shots</strong>: Red X marks</li>
                                 <li><strong>Shot sizes</strong>: FT (small), FG (medium), 3PT (large)</li>
                                 <li><strong>Automatic positioning</strong>: Shots snap to correct zones and auto-adjust to avoid overlapping when possible</li>
-                                <li><strong>Tap a shot</strong> in view mode to see player info</li>
                             </ul>
 
                             <h4>Other Stats</h4>
                             <ul>
                                 <li>Select a player</li>
-                                <li>Click stat buttons: +REB, +AST, +STL, +BLK, +TO</li>
+                                <li>Click stat buttons: +REB, +AST, +STL, +BLK, +TO, +FOUL, +TECH</li>
                                 <li>A 2-second animation shows the stat was recorded</li>
                             </ul>
                         </section>
@@ -76,7 +66,7 @@ const HelpUI = (() => {
                         <section class="help-section">
                             <h3>Undo & Redo</h3>
                             <ul>
-                                <li><strong>Undo</strong>: Reverses the last action (archived, not deleted)</li>
+                                <li><strong>Undo</strong>: Reverses the last action from clicking shot buttons or stat buttons (archived, not deleted)</li>
                                 <li><strong>Redo</strong>: Restores the last undone action</li>
                                 <li>All undone actions are preserved and can be redone</li>
                             </ul>
@@ -89,6 +79,7 @@ const HelpUI = (() => {
                                 <li>Choose the correction or delete the event</li>
                                 <li>Corrected events show in red in the Action Log</li>
                                 <li>Original timestamp is preserved</li>
+                                <li><strong>Note:</strong> Corrections made in the Action Log cannot be undone</li>
                             </ul>
                         </section>
 
@@ -101,7 +92,6 @@ const HelpUI = (() => {
                                 <li>Click individual jersey numbers to select/deselect specific players</li>
                                 <li>The court shows only shots from selected players</li>
                                 <li>Stats display combined totals for all selected players</li>
-                                <li>Tap any shot on the court to see which player took it</li>
                                 <li>Switch back to <strong>Editing</strong> mode to record new stats</li>
                             </ul>
                         </section>
