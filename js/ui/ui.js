@@ -206,6 +206,17 @@ const UI = (() => {
                 appState.selectedJersey = null;
             } else {
                 appState.selectedJersey = jerseyNumber;
+
+                // Auto-scroll to jersey row when selecting a player in edit mode
+                if (appState.currentMode === 'edit') {
+                    const jerseyRow = document.getElementById('jersey-row');
+                    if (jerseyRow) {
+                        // Scroll to position with offset for white space above
+                        const yOffset = -16; // 16px white space above
+                        const y = jerseyRow.getBoundingClientRect().top + window.pageYOffset + yOffset;
+                        window.scrollTo({ top: y, behavior: 'smooth' });
+                    }
+                }
             }
 
             // Clear shot button selection when switching players

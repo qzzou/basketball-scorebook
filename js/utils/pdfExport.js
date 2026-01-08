@@ -471,27 +471,29 @@ const PDFExport = (() => {
                 (jerseyNumber === null || e.playerNumber === jerseyNumber)
             );
 
-            // Find most recent shot of the entire team (or single player if filtered)
-            let mostRecentShot = null;
+            // Separate FT and non-FT shots
+            const ftShots = [];
+            const nonFTShots = [];
+
             shotEvents.forEach((shot) => {
-                if (!mostRecentShot || shot.timestamp > mostRecentShot.timestamp) {
-                    mostRecentShot = shot;
+                if (shot.shotData.shotType === 'FT') {
+                    ftShots.push(shot);
+                } else {
+                    nonFTShots.push(shot);
                 }
             });
 
-            const baseRadius = 5;
+            const baseRadius = 2.5; // Half the size for PDF rendering
 
-            shotEvents.forEach((shot) => {
+            // Draw non-FT shots (FG and 3PT)
+            nonFTShots.forEach((shot) => {
                 const x = shot.shotData.location.x * canvasWidth;
                 const y = shot.shotData.location.y * canvasHeight;
 
                 let radius = baseRadius;
                 let color = shot.shotData.made ? '#4CAF50' : '#f44336';
 
-                if (shot.shotData.shotType === 'FT') {
-                    radius = baseRadius * 0.5;
-                    color = shot.shotData.made ? '#000' : '#f44336';
-                } else if (shot.shotData.shotType === '3PT') {
+                if (shot.shotData.shotType === '3PT') {
                     radius = baseRadius;
                     color = shot.shotData.made ? '#2196F3' : '#f44336';
                 }
@@ -506,12 +508,119 @@ const PDFExport = (() => {
                     // Missed shot: X mark
                     this.drawXMark(ctx, x, y, radius, color);
                 }
+            });
 
-                // Draw jersey number next to most recent shot of the entire team
-                if (mostRecentShot === shot) {
-                    this.drawJerseyLabel(ctx, x, y, shot.playerNumber, radius);
+            // Draw aggregated FT circles
+            if (ftShots.length > 0) {
+                this.drawFreeThrowCircles(ctx, canvasWidth, canvasHeight, ftShots, baseRadius);
+            }
+        },
+
+        /**
+         * Draw aggregated FT circles at fixed locations
+         */
+        drawFreeThrowCircles(ctx, canvasWidth, canvasHeight, ftShots, baseRadius) {
+            // Get FT locations from CourtRenderer
+            const ftLocations = CourtRenderer.getFreeThrowLocations(canvasWidth, canvasHeight);
+            const radiusFt = ftLocations.radiusFt; // 2ft
+            const scale = ftLocations.scale;
+
+            // Define display locations for made/miss circles
+            // Offset from FT center: +1.1R horizontally, and -1.05R (top/miss), +1.05R (bottom/made) vertically
+            const horizontalOffsetNorm = (1.1 * radiusFt) / 94; // Normalize to court length
+            const verticalOffsetNorm = (1.05 * radiusFt) / 50; // Normalize to court width
+
+            // Aggregate shots by side
+            const leftShots = { made: 0, miss: 0 };
+            const rightShots = { made: 0, miss: 0 };
+
+            ftShots.forEach(shot => {
+                const side = shot.shotData.location.x < 0.5 ? 'left' : 'right';
+                const shots = side === 'left' ? leftShots : rightShots;
+
+                if (shot.shotData.made) {
+                    shots.made++;
+                } else {
+                    shots.miss++;
                 }
             });
+
+            // Draw circles for each side
+            const radius = baseRadius * 1.2; // Slightly larger for visibility
+
+            // Left side
+            const leftFTX = ftLocations.left.x * canvasWidth;
+            const leftFTY = ftLocations.left.y * canvasHeight;
+
+            // Left - Made (bottom)
+            if (leftShots.made > 0) {
+                const leftMadeX = leftFTX + (horizontalOffsetNorm * canvasWidth);
+                const leftMadeY = leftFTY + (verticalOffsetNorm * canvasHeight);
+                this.drawFTMadeCircle(ctx, leftMadeX, leftMadeY, radius, leftShots.made);
+            }
+
+            // Left - Miss (top)
+            if (leftShots.miss > 0) {
+                const leftMissX = leftFTX + (horizontalOffsetNorm * canvasWidth);
+                const leftMissY = leftFTY - (verticalOffsetNorm * canvasHeight);
+                this.drawFTMissCircle(ctx, leftMissX, leftMissY, radius, leftShots.miss);
+            }
+
+            // Right side
+            const rightFTX = ftLocations.right.x * canvasWidth;
+            const rightFTY = ftLocations.right.y * canvasHeight;
+
+            // Right - Made (bottom)
+            if (rightShots.made > 0) {
+                const rightMadeX = rightFTX - (horizontalOffsetNorm * canvasWidth);
+                const rightMadeY = rightFTY + (verticalOffsetNorm * canvasHeight);
+                this.drawFTMadeCircle(ctx, rightMadeX, rightMadeY, radius, rightShots.made);
+            }
+
+            // Right - Miss (top)
+            if (rightShots.miss > 0) {
+                const rightMissX = rightFTX - (horizontalOffsetNorm * canvasWidth);
+                const rightMissY = rightFTY - (verticalOffsetNorm * canvasHeight);
+                this.drawFTMissCircle(ctx, rightMissX, rightMissY, radius, rightShots.miss);
+            }
+        },
+
+        /**
+         * Draw made FT circle (green border, black count)
+         */
+        drawFTMadeCircle(ctx, x, y, radius, count) {
+            // Draw circle border (not filled)
+            ctx.beginPath();
+            ctx.arc(x, y, radius, 0, Math.PI * 2);
+            ctx.strokeStyle = '#4CAF50'; // Green border
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // Draw count (black text in center)
+            ctx.font = 'bold 14px Arial';
+            ctx.fillStyle = '#000';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(count.toString(), x, y);
+        },
+
+        /**
+         * Draw miss FT circle (red border, black count)
+         */
+        drawFTMissCircle(ctx, x, y, radius, count) {
+            // Draw circle border (not filled)
+            ctx.beginPath();
+            ctx.arc(x, y, radius, 0, Math.PI * 2);
+            ctx.strokeStyle = '#f44336'; // Red
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // Draw count (black text in center)
+            ctx.font = 'bold 14px Arial';
+            ctx.fillStyle = '#000';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(count.toString(), x, y);
         },
 
         /**
@@ -561,13 +670,14 @@ const PDFExport = (() => {
             pdf.setFont('helvetica', 'normal');
 
             const legendItems = [
-                { label: 'Made FT', color: '#000', filled: true, size: 2 },
-                { label: 'Made FG', color: '#4CAF50', filled: true, size: 2.5 },
-                { label: 'Made 3PT', color: '#2196F3', filled: true, size: 2.5 },
-                { label: 'Miss', color: '#f44336', filled: false, size: 2.5 }
+                { label: 'Made FT', color: '#4CAF50', type: 'circle-border', size: 2 },
+                { label: 'Miss FT', color: '#f44336', type: 'circle-border', size: 2 },
+                { label: 'Made FG', color: '#4CAF50', type: 'filled', size: 2.5 },
+                { label: 'Made 3PT', color: '#2196F3', type: 'filled', size: 2.5 },
+                { label: 'Miss', color: '#f44336', type: 'x-mark', size: 2.5 }
             ];
 
-            const spacing = 35;
+            const spacing = 32;
             const totalWidth = legendItems.length * spacing;
 
             // Start from right edge and work backwards
@@ -575,11 +685,17 @@ const PDFExport = (() => {
 
             legendItems.forEach((item) => {
                 // Draw symbol
-                if (item.filled) {
+                if (item.type === 'filled') {
                     // Draw filled circle
                     pdf.setFillColor(item.color);
                     pdf.circle(currentX + 2, y - 1, item.size, 'F');
-                } else {
+                } else if (item.type === 'circle-border') {
+                    // Draw circle with border only (for FT)
+                    pdf.setDrawColor(item.color);
+                    pdf.setLineWidth(0.5);
+                    pdf.circle(currentX + 2, y - 1, item.size, 'S');
+                    pdf.setDrawColor(0); // Reset to black
+                } else if (item.type === 'x-mark') {
                     // Draw X mark
                     pdf.setDrawColor(item.color);
                     pdf.setLineWidth(0.5);

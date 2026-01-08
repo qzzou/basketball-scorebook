@@ -344,6 +344,7 @@ button:disabled {
     gap: 0.5rem;
     flex-wrap: nowrap;
     overflow-x: auto;
+    min-height: 2.5rem; /* Reserve space for stats even when empty */
 }
 
 .stat {
@@ -1248,6 +1249,11 @@ button:disabled {
     color: #666;
     text-align: center;
     font-style: italic;
+    height: 2.6em; /* Fixed height for 2 lines (0.9rem * 1.4 line-height * 2 rows + small buffer) */
+    line-height: 1.4;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 /* Court Container with relative positioning for overlays */

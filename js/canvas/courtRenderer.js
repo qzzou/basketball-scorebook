@@ -221,6 +221,65 @@ const CourtRenderer = (() => {
             ctx.moveTo(courtX + courtWidth, courtY);
             ctx.lineTo(courtX + courtWidth, courtY + courtHeight);
             ctx.stroke();
+        },
+
+        /**
+         * Get free throw center locations for both sides of court
+         * @param {number} canvasWidth - Canvas width
+         * @param {number} canvasHeight - Canvas height
+         * @returns {Object} FT center locations and radius
+         */
+        getFreeThrowLocations(canvasWidth, canvasHeight) {
+            // Court dimensions
+            const courtLengthFt = 94;
+            const courtWidthFt = 50;
+            const freeThrowLineDistanceFt = 19;
+
+            // Calculate court dimensions
+            const paddingPercent = 0.03;
+            const availableWidth = canvasWidth * (1 - 2 * paddingPercent);
+            const availableHeight = canvasHeight * (1 - 2 * paddingPercent);
+
+            const aspectRatio = courtWidthFt / courtLengthFt;
+            let courtWidth = availableWidth;
+            let courtHeight = courtWidth * aspectRatio;
+
+            if (courtHeight > availableHeight) {
+                courtHeight = availableHeight;
+                courtWidth = courtHeight / aspectRatio;
+            }
+
+            const courtX = (canvasWidth - courtWidth) / 2;
+            const courtY = (canvasHeight - courtHeight) / 2;
+            const scale = courtWidth / courtLengthFt;
+            const centerY = courtY + courtHeight / 2;
+
+            // FT line X positions
+            const leftFTLineX = courtX + freeThrowLineDistanceFt * scale;
+            const rightFTLineX = courtX + courtWidth - freeThrowLineDistanceFt * scale;
+
+            // FT radius in feet (2ft as specified)
+            const ftRadiusFt = 2;
+            const ftRadius = ftRadiusFt * scale;
+
+            // Convert to normalized coordinates (0-1)
+            const leftFTCenterNorm = {
+                x: leftFTLineX / canvasWidth,
+                y: centerY / canvasHeight
+            };
+
+            const rightFTCenterNorm = {
+                x: rightFTLineX / canvasWidth,
+                y: centerY / canvasHeight
+            };
+
+            return {
+                left: leftFTCenterNorm,
+                right: rightFTCenterNorm,
+                radiusFt: ftRadiusFt,
+                radiusPixels: ftRadius,
+                scale: scale
+            };
         }
     };
 })();

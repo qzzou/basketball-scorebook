@@ -64,58 +64,63 @@ const ShotRenderer = (() => {
                 e.shotData.location
             );
 
-            // Find most recent shot of the entire team
-            let mostRecentShot = null;
+            // Separate FT and non-FT shots
+            const ftShots = [];
+            const nonFTShots = [];
+
             shotEvents.forEach((shot) => {
                 // Filter by selected jerseys in view mode
                 if (filterJerseys && !filterJerseys.includes(shot.playerNumber)) {
                     return;
                 }
 
-                if (!mostRecentShot || shot.timestamp > mostRecentShot.timestamp) {
-                    mostRecentShot = shot;
+                if (shot.shotData.shotType === 'FT') {
+                    ftShots.push(shot);
+                } else {
+                    nonFTShots.push(shot);
                 }
             });
 
-            const baseRadius = 5; // FG/3PT = 100% (halved from 10)
-
-            shotEvents.forEach((shot, index) => {
-                // Filter by selected jerseys in view mode
-                if (filterJerseys && !filterJerseys.includes(shot.playerNumber)) {
-                    return;
+            // Draw non-FT shots (FG and 3PT)
+            let mostRecentNonFTShot = null;
+            nonFTShots.forEach((shot) => {
+                if (!mostRecentNonFTShot || shot.timestamp > mostRecentNonFTShot.timestamp) {
+                    mostRecentNonFTShot = shot;
                 }
+            });
 
+            const baseRadius = 5;
+
+            nonFTShots.forEach((shot) => {
                 const x = shot.shotData.location.x * canvasWidth;
                 const y = shot.shotData.location.y * canvasHeight;
 
-                // Calculate radius based on shot type
                 let radius = baseRadius;
                 let color = shot.shotData.made ? '#4CAF50' : '#f44336';
 
-                if (shot.shotData.shotType === 'FT') {
-                    radius = baseRadius * 0.5; // 50% size
-                    color = shot.shotData.made ? '#000' : '#f44336'; // Black for made FT, red for missed
-                } else if (shot.shotData.shotType === '3PT') {
-                    radius = baseRadius; // 100% size (same as FG)
-                    color = shot.shotData.made ? '#2196F3' : '#f44336'; // Blue for 3PT made
+                if (shot.shotData.shotType === '3PT') {
+                    color = shot.shotData.made ? '#2196F3' : '#f44336';
                 }
 
                 if (shot.shotData.made) {
-                    // Made shot: filled circle
                     ctx.beginPath();
                     ctx.arc(x, y, radius, 0, Math.PI * 2);
                     ctx.fillStyle = color;
                     ctx.fill();
                 } else {
-                    // Missed shot: X mark
                     this.drawXMark(ctx, x, y, radius, color);
                 }
 
-                // Draw jersey number next to most recent shot of the entire team
-                if (mostRecentShot === shot) {
+                // Draw jersey number next to most recent non-FT shot
+                if (mostRecentNonFTShot === shot) {
                     this.drawJerseyLabel(ctx, x, y, shot.playerNumber, radius);
                 }
             });
+
+            // Draw aggregated FT circles (only if not in draw mode)
+            if (!appState.selectedShotType) {
+                this.drawFreeThrowCircles(ctx, canvasWidth, canvasHeight, ftShots);
+            }
         },
 
         /**
@@ -188,6 +193,164 @@ const ShotRenderer = (() => {
             ctx.moveTo(x + radius * 0.7, y - radius * 0.7);
             ctx.lineTo(x - radius * 0.7, y + radius * 0.7);
             ctx.stroke();
+        },
+
+        /**
+         * Draw aggregated free throw circles
+         * @param {CanvasRenderingContext2D} ctx - Canvas context
+         * @param {number} canvasWidth - Canvas width
+         * @param {number} canvasHeight - Canvas height
+         * @param {Array} ftShots - Array of free throw shot events
+         */
+        drawFreeThrowCircles(ctx, canvasWidth, canvasHeight, ftShots) {
+            if (ftShots.length === 0) return;
+
+            // Get FT locations from CourtRenderer
+            const ftLocs = CourtRenderer.getFreeThrowLocations(canvasWidth, canvasHeight);
+            const radiusFt = ftLocs.radiusFt; // 2ft
+            const radiusPixels = ftLocs.radiusPixels;
+
+            // Define display locations for made/miss circles
+            // Offset from FT center: +1.1R horizontally, and -1.05R (top/miss), +1.05R (bottom/made) vertically
+            const horizontalOffsetNorm = (1.1 * radiusFt) / 94; // Normalize to court length
+            const verticalOffsetNorm = (1.05 * radiusFt) / 50; // Normalize to court width (moved closer by 2R)
+
+            const ftDisplayLocations = {
+                left: {
+                    miss: { x: ftLocs.left.x + horizontalOffsetNorm, y: ftLocs.left.y - verticalOffsetNorm },
+                    made: { x: ftLocs.left.x + horizontalOffsetNorm, y: ftLocs.left.y + verticalOffsetNorm }
+                },
+                right: {
+                    miss: { x: ftLocs.right.x - horizontalOffsetNorm, y: ftLocs.right.y - verticalOffsetNorm },
+                    made: { x: ftLocs.right.x - horizontalOffsetNorm, y: ftLocs.right.y + verticalOffsetNorm }
+                }
+            };
+
+            // Aggregate FT shots by half-court and made/missed
+            const leftMade = [];
+            const leftMissed = [];
+            const rightMade = [];
+            const rightMissed = [];
+
+            ftShots.forEach((shot) => {
+                const isLeftSide = shot.shotData.location.x < 0.5;
+
+                if (isLeftSide) {
+                    if (shot.shotData.made) {
+                        leftMade.push(shot);
+                    } else {
+                        leftMissed.push(shot);
+                    }
+                } else {
+                    if (shot.shotData.made) {
+                        rightMade.push(shot);
+                    } else {
+                        rightMissed.push(shot);
+                    }
+                }
+            });
+
+            // Draw made circles (light yellow filled) at bottom position
+            if (leftMade.length > 0) {
+                const loc = ftDisplayLocations.left.made;
+                this.drawFTMadeCircle(ctx, loc.x * canvasWidth, loc.y * canvasHeight, radiusPixels, leftMade.length);
+            }
+
+            if (rightMade.length > 0) {
+                const loc = ftDisplayLocations.right.made;
+                this.drawFTMadeCircle(ctx, loc.x * canvasWidth, loc.y * canvasHeight, radiusPixels, rightMade.length);
+            }
+
+            // Draw miss circles (red border, red X, not filled) at top position
+            if (leftMissed.length > 0) {
+                const loc = ftDisplayLocations.left.miss;
+                this.drawFTMissCircle(ctx, loc.x * canvasWidth, loc.y * canvasHeight, radiusPixels, leftMissed.length);
+            }
+
+            if (rightMissed.length > 0) {
+                const loc = ftDisplayLocations.right.miss;
+                this.drawFTMissCircle(ctx, loc.x * canvasWidth, loc.y * canvasHeight, radiusPixels, rightMissed.length);
+            }
+        },
+
+        /**
+         * Get FT attempt locations (for snapping when recording shots)
+         * Returns the 2 legal attempt locations (middle position on each side)
+         * @param {number} canvasWidth - Canvas width
+         * @param {number} canvasHeight - Canvas height
+         * @returns {Array} Array of 2 attempt location objects with x, y (normalized)
+         */
+        getFTAttemptLocations(canvasWidth, canvasHeight) {
+            const ftLocs = CourtRenderer.getFreeThrowLocations(canvasWidth, canvasHeight);
+            const radiusFt = ftLocs.radiusFt; // 2ft
+
+            // Horizontal offset: 1.1 * R towards center of court from FT line
+            const horizontalOffsetFt = 1.1 * radiusFt; // 1.1 * 2 = 2.2 ft
+            const horizontalOffsetNorm = horizontalOffsetFt / 94; // Normalize to court length
+
+            // Only 2 attempt locations: middle position on each side
+            // Left side: move right (towards center) by 1.1R
+            // Right side: move left (towards center) by 1.1R
+            return [
+                {
+                    x: ftLocs.left.x + horizontalOffsetNorm,
+                    y: ftLocs.left.y,
+                    side: 'left'
+                },
+                {
+                    x: ftLocs.right.x - horizontalOffsetNorm,
+                    y: ftLocs.right.y,
+                    side: 'right'
+                }
+            ];
+        },
+
+        /**
+         * Draw FT made circle (light yellow filled with count)
+         * @param {CanvasRenderingContext2D} ctx - Canvas context
+         * @param {number} x - X coordinate (pixels)
+         * @param {number} y - Y coordinate (pixels)
+         * @param {number} radius - Circle radius (pixels)
+         * @param {number} count - Number of made FTs
+         */
+        drawFTMadeCircle(ctx, x, y, radius, count) {
+            // Draw circle border (not filled)
+            ctx.beginPath();
+            ctx.arc(x, y, radius, 0, Math.PI * 2);
+            ctx.strokeStyle = '#4CAF50'; // Green border
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // Draw count (black text in center)
+            ctx.font = 'bold 14px Arial';
+            ctx.fillStyle = '#000';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(count.toString(), x, y);
+        },
+
+        /**
+         * Draw FT miss circle (red border, red X, not filled, with count)
+         * @param {CanvasRenderingContext2D} ctx - Canvas context
+         * @param {number} x - X coordinate (pixels)
+         * @param {number} y - Y coordinate (pixels)
+         * @param {number} radius - Circle radius (pixels)
+         * @param {number} count - Number of missed FTs
+         */
+        drawFTMissCircle(ctx, x, y, radius, count) {
+            // Draw circle border (not filled)
+            ctx.beginPath();
+            ctx.arc(x, y, radius, 0, Math.PI * 2);
+            ctx.strokeStyle = '#f44336'; // Red
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // Draw count (black text in center)
+            ctx.font = 'bold 14px Arial';
+            ctx.fillStyle = '#000';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(count.toString(), x, y);
         },
 
         /**
@@ -395,17 +558,35 @@ const ShotRenderer = (() => {
         },
 
         /**
-         * Adjust shot location to avoid overlap and snap FT to line
+         * Adjust shot location to avoid overlap and snap to appropriate zones
          */
         adjustShotLocation(normalizedX, normalizedY, shotType) {
             const game = DataModel.getCurrentGame();
             if (!game) return { x: normalizedX, y: normalizedY };
 
-            // For free throws, snap to within the free throw circle (6ft radius)
+            // For free throws, snap to nearest of the 2 legal attempt locations
             if (shotType === 'FT') {
-                const snapped = this.snapToFreeThrowCircle(normalizedX, normalizedY);
-                normalizedX = snapped.x;
-                normalizedY = snapped.y;
+                const canvas = document.getElementById('shots-map-canvas');
+                if (canvas) {
+                    const canvasWidth = canvas.width / (window.devicePixelRatio || 1);
+                    const canvasHeight = canvas.height / (window.devicePixelRatio || 1);
+                    const attemptLocs = this.getFTAttemptLocations(canvasWidth, canvasHeight);
+
+                    // Find closest attempt location
+                    let closestLoc = attemptLocs[0];
+                    let minDistance = Math.hypot(normalizedX - closestLoc.x, normalizedY - closestLoc.y);
+
+                    for (let i = 1; i < attemptLocs.length; i++) {
+                        const dist = Math.hypot(normalizedX - attemptLocs[i].x, normalizedY - attemptLocs[i].y);
+                        if (dist < minDistance) {
+                            minDistance = dist;
+                            closestLoc = attemptLocs[i];
+                        }
+                    }
+
+                    normalizedX = closestLoc.x;
+                    normalizedY = closestLoc.y;
+                }
             }
 
             // For 3PT shots, snap to outside the 3PT arc
@@ -422,7 +603,12 @@ const ShotRenderer = (() => {
                 normalizedY = snapped.y;
             }
 
-            // Check for overlaps with existing shots
+            // For free throws, skip overlap checking (they should aggregate at fixed locations)
+            if (shotType === 'FT') {
+                return { x: normalizedX, y: normalizedY };
+            }
+
+            // Check for overlaps with existing shots (only for FG and 3PT)
             const shotEvents = game.gameEvents.filter(e =>
                 e.eventStatus === 'active' &&
                 e.action === 'shot' &&
