@@ -64,18 +64,24 @@ const UI = (() => {
             if (appState.currentMode === 'edit') {
                 if (appState.selectedJersey !== null) {
                     this.renderStatRow(appState.selectedJersey);
+                    // Show guide-text in edit mode when player is selected
+                    this.showGuideText();
                 } else {
                     const game = DataModel.getCurrentGame();
                     const helpText = game.teamRoster.length === 0 ? 'Add a player above to begin' : 'Select a player above to begin';
                     document.getElementById('stat-row').innerHTML = `<p>${helpText}</p>`;
                     // Clear stat buttons when no player selected
                     this.renderStatButtons();
+                    // Hide guide-text when no player selected
+                    this.hideGuideText();
                 }
             } else {
                 // View mode - show combined stats
                 this.renderViewModeStats();
                 // Clear stat buttons in view mode
                 this.renderStatButtons();
+                // Hide guide-text in view mode
+                this.hideGuideText();
             }
 
             // Update undo/redo buttons - hide in view mode, enable/disable in edit mode
@@ -721,7 +727,7 @@ const UI = (() => {
         },
 
         /**
-         * Show Draw Row
+         * Show Draw Row - new workflow
          */
         showDrawRow(jerseyNumber, points, made) {
             const game = DataModel.getCurrentGame();
@@ -729,17 +735,36 @@ const UI = (() => {
             const shotName = points === 1 ? 'free throw' : points === 3 ? '3pt' : '2pt';
             const result = made ? 'made' : 'missed';
 
-            const drawText = document.getElementById('draw-text');
-            const drawRow = document.getElementById('draw-row');
+            // Show guide-text above court
+            const guideText = document.getElementById('guide-text');
+            guideText.textContent = `#${jerseyNumber} ${playerName} ${result} a ${shotName}, tap / retap on court`;
+            guideText.style.display = 'block';
 
-            drawText.textContent = `#${jerseyNumber} ${playerName} ${result} a ${shotName}, tap anywhere on court, and press DONE to record the shot.`;
+            // Show tap-text overlay on court
+            const tapText = document.getElementById('tap-text');
+            tapText.style.display = 'block';
+
+            // Show draw-row below court with disabled Done button
+            const drawRow = document.getElementById('draw-row');
+            const doneBtn = document.getElementById('done-btn');
             drawRow.style.display = 'flex';
+            doneBtn.classList.add('disabled');
+            doneBtn.classList.remove('glow', 'shake');
         },
 
         /**
-         * Hide Draw Row
+         * Hide Draw Row - new workflow
          */
         hideDrawRow() {
+            // Hide tap-text
+            const tapText = document.getElementById('tap-text');
+            tapText.style.display = 'none';
+
+            // Hide retap-text
+            const retapText = document.getElementById('retap-text');
+            retapText.style.display = 'none';
+
+            // Hide draw-row
             const drawRow = document.getElementById('draw-row');
             drawRow.style.display = 'none';
 
@@ -747,8 +772,68 @@ const UI = (() => {
             appState.selectedShotType = null;
             appState.pendingShot = null;
 
+            // Restore default guide-text if in edit mode with player selected
+            if (appState.currentMode === 'edit' && appState.selectedJersey !== null) {
+                this.showGuideText();
+            } else {
+                this.hideGuideText();
+            }
+
             // Re-render canvas to show all shots
             this.renderCanvas();
+        },
+
+        /**
+         * Start shake animation for Done button periodically
+         */
+        startDoneButtonShake() {
+            const doneBtn = document.getElementById('done-btn');
+
+            // Clear any existing shake interval
+            if (this.shakeInterval) {
+                clearInterval(this.shakeInterval);
+            }
+
+            // Shake every 3 seconds
+            this.shakeInterval = setInterval(() => {
+                if (!doneBtn.classList.contains('disabled')) {
+                    doneBtn.classList.add('shake');
+                    setTimeout(() => {
+                        doneBtn.classList.remove('shake');
+                    }, 500);
+                }
+            }, 3000);
+        },
+
+        /**
+         * Stop shake animation for Done button
+         */
+        stopDoneButtonShake() {
+            if (this.shakeInterval) {
+                clearInterval(this.shakeInterval);
+                this.shakeInterval = null;
+            }
+        },
+
+        /**
+         * Show guide text (edit mode, player selected)
+         */
+        showGuideText() {
+            const guideText = document.getElementById('guide-text');
+            if (guideText) {
+                guideText.textContent = 'tap a shot button above and then tap on court, or tap a stat button below';
+                guideText.style.display = 'block';
+            }
+        },
+
+        /**
+         * Hide guide text
+         */
+        hideGuideText() {
+            const guideText = document.getElementById('guide-text');
+            if (guideText) {
+                guideText.style.display = 'none';
+            }
         },
 
         /**
@@ -775,6 +860,18 @@ const UI = (() => {
 
             // Draw the pending shot on canvas
             this.renderPendingShot();
+
+            // Step 6: Hide tap-text, show retap-text
+            const tapText = document.getElementById('tap-text');
+            const retapText = document.getElementById('retap-text');
+            tapText.style.display = 'none';
+            retapText.style.display = 'block';
+
+            // Step 7: Enable Done button, add glow, start shake
+            const doneBtn = document.getElementById('done-btn');
+            doneBtn.classList.remove('disabled');
+            doneBtn.classList.add('glow');
+            this.startDoneButtonShake();
         },
 
         /**
@@ -836,9 +933,10 @@ const UI = (() => {
                 }
             });
 
-            // Clear shot button selection after completing shot
-            const shotButtons = document.querySelectorAll('.shot-buttons-row .action-btn');
-            shotButtons.forEach(btn => btn.classList.remove('selected'));
+            // Stop shake animation
+            this.stopDoneButtonShake();
+
+            // Step 8: Keep shot button highlighted (removed the code that clears selection)
 
             // Hide Draw Row and render normally
             this.hideDrawRow();
@@ -849,9 +947,10 @@ const UI = (() => {
          * Handle Cancel button
          */
         handleCancel() {
-            // Clear shot button selection when canceling
-            const shotButtons = document.querySelectorAll('.shot-buttons-row .action-btn');
-            shotButtons.forEach(btn => btn.classList.remove('selected'));
+            // Stop shake animation
+            this.stopDoneButtonShake();
+
+            // Step 8: Keep shot button highlighted (removed the code that clears selection)
 
             this.hideDrawRow();
         },

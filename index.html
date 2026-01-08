@@ -59,18 +59,24 @@
                 <p>Select a player to begin</p>
             </div>
 
-            <!-- Draw Row (hidden by default) -->
-            <div id="draw-row" class="draw-row" style="display: none;">
-                <div class="draw-text" id="draw-text"></div>
-                <div class="draw-buttons">
-                    <button id="done-btn" class="btn-primary">Done</button>
-                    <button id="cancel-btn" class="btn-secondary">Cancel</button>
-                </div>
-            </div>
+            <!-- Guide Text (above court, hidden by default) -->
+            <div id="guide-text" class="guide-text" style="display: none;"></div>
 
             <!-- Court Canvas -->
             <div class="court-container">
                 <canvas id="shots-map-canvas"></canvas>
+                <!-- Tap Text Overlay (on court, hidden by default) -->
+                <div id="tap-text" class="tap-text" style="display: none;">tap to draw shot</div>
+                <!-- Retap Text Overlay (on court, hidden by default) -->
+                <div id="retap-text" class="retap-text" style="display: none;">retap to move, press done to confirm</div>
+            </div>
+
+            <!-- Draw Row (below court, hidden by default) -->
+            <div id="draw-row" class="draw-row" style="display: none;">
+                <div class="draw-buttons">
+                    <button id="cancel-btn" class="btn-secondary">Cancel</button>
+                    <button id="done-btn" class="btn-primary disabled">Done</button>
+                </div>
             </div>
 
             <!-- Stat Buttons (below court) -->

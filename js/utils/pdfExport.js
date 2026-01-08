@@ -471,6 +471,14 @@ const PDFExport = (() => {
                 (jerseyNumber === null || e.playerNumber === jerseyNumber)
             );
 
+            // Find most recent shot of the entire team (or single player if filtered)
+            let mostRecentShot = null;
+            shotEvents.forEach((shot) => {
+                if (!mostRecentShot || shot.timestamp > mostRecentShot.timestamp) {
+                    mostRecentShot = shot;
+                }
+            });
+
             const baseRadius = 5;
 
             shotEvents.forEach((shot) => {
@@ -498,6 +506,11 @@ const PDFExport = (() => {
                     // Missed shot: X mark
                     this.drawXMark(ctx, x, y, radius, color);
                 }
+
+                // Draw jersey number next to most recent shot of the entire team
+                if (mostRecentShot === shot) {
+                    this.drawJerseyLabel(ctx, x, y, shot.playerNumber, radius);
+                }
             });
         },
 
@@ -518,6 +531,26 @@ const PDFExport = (() => {
             ctx.moveTo(x + radius * 0.7, y - radius * 0.7);
             ctx.lineTo(x - radius * 0.7, y + radius * 0.7);
             ctx.stroke();
+        },
+
+        /**
+         * Draw jersey number next to shot (for PDF canvas)
+         */
+        drawJerseyLabel(ctx, x, y, jerseyNumber, markerRadius) {
+            const label = `#${jerseyNumber}`;
+
+            ctx.font = 'bold 12px Arial';
+            ctx.fillStyle = '#555'; // Dark grey
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 3;
+
+            const labelX = x + markerRadius + 8;
+            const labelY = y + 4;
+
+            // Draw white outline for readability
+            ctx.strokeText(label, labelX, labelY);
+            // Draw text
+            ctx.fillText(label, labelX, labelY);
         },
 
         /**

@@ -64,6 +64,19 @@ const ShotRenderer = (() => {
                 e.shotData.location
             );
 
+            // Find most recent shot of the entire team
+            let mostRecentShot = null;
+            shotEvents.forEach((shot) => {
+                // Filter by selected jerseys in view mode
+                if (filterJerseys && !filterJerseys.includes(shot.playerNumber)) {
+                    return;
+                }
+
+                if (!mostRecentShot || shot.timestamp > mostRecentShot.timestamp) {
+                    mostRecentShot = shot;
+                }
+            });
+
             const baseRadius = 5; // FG/3PT = 100% (halved from 10)
 
             shotEvents.forEach((shot, index) => {
@@ -97,6 +110,11 @@ const ShotRenderer = (() => {
                     // Missed shot: X mark
                     this.drawXMark(ctx, x, y, radius, color);
                 }
+
+                // Draw jersey number next to most recent shot of the entire team
+                if (mostRecentShot === shot) {
+                    this.drawJerseyLabel(ctx, x, y, shot.playerNumber, radius);
+                }
             });
         },
 
@@ -116,6 +134,31 @@ const ShotRenderer = (() => {
 
             ctx.font = 'bold 12px Arial';
             ctx.fillStyle = color;
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 3;
+
+            const labelX = x + markerRadius + 8;
+            const labelY = y + 4;
+
+            // Draw white outline for readability
+            ctx.strokeText(label, labelX, labelY);
+            // Draw text
+            ctx.fillText(label, labelX, labelY);
+        },
+
+        /**
+         * Draw jersey number next to shot (simplified label)
+         * @param {CanvasRenderingContext2D} ctx - Canvas context
+         * @param {number} x - Shot x coordinate
+         * @param {number} y - Shot y coordinate
+         * @param {number} jerseyNumber - Player jersey number
+         * @param {number} markerRadius - Shot marker radius
+         */
+        drawJerseyLabel(ctx, x, y, jerseyNumber, markerRadius) {
+            const label = `#${jerseyNumber}`;
+
+            ctx.font = 'bold 12px Arial';
+            ctx.fillStyle = '#555'; // Dark grey
             ctx.strokeStyle = '#fff';
             ctx.lineWidth = 3;
 

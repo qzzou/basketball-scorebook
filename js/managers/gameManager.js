@@ -304,6 +304,16 @@ const GameManager = (() => {
                 drawRow.style.display = 'none';
             }
 
+            // Hide tap-text and retap-text overlays
+            const tapText = document.getElementById('tap-text');
+            if (tapText) {
+                tapText.style.display = 'none';
+            }
+            const retapText = document.getElementById('retap-text');
+            if (retapText) {
+                retapText.style.display = 'none';
+            }
+
             // Clear pending shot state
             const appState = DataModel.getAppState();
             appState.selectedShotType = null;
