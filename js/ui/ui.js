@@ -590,8 +590,9 @@ const UI = (() => {
                 const playerName = game.playerNames[event.playerNumber] || `Player`;
                 const jerseyAndName = `#${event.playerNumber} ${playerName}`;
                 const sentence = Formatters.formatEventToSentence(event, jerseyAndName);
+                const time = Formatters.formatTime(event.timestamp);
                 const className = event.edited ? 'edited' : '';
-                return `<div class="action-item ${className}" onclick="UI.handleActionClick(${event.eventIndex})">${sentence}</div>`;
+                return `<div class="action-item ${className}" onclick="UI.handleActionClick(${event.eventIndex})">[${time}] ${sentence}</div>`;
             }).join('');
         },
 

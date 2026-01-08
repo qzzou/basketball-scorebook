@@ -128,6 +128,13 @@
             };
         }
 
+        const shareBtn = document.getElementById('share-btn');
+        if (shareBtn) {
+            shareBtn.onclick = () => {
+                PDFExport.generatePDF();
+            };
+        }
+
         const importBtn = document.getElementById('import-btn');
         if (importBtn) {
             importBtn.onclick = () => SettingsUI.handleImport();
@@ -158,5 +165,6 @@
     window.GameHistoryUI = GameHistoryUI;
     window.ActionCorrectionUI = ActionCorrectionUI;
     window.HelpUI = HelpUI;
+    window.PDFExport = PDFExport;
 
 })();
