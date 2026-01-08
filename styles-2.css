@@ -22,6 +22,20 @@ svg.lucide {
     fill: none;
 }
 
+/* Shake animation for stat highlights */
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    10%, 30%, 50%, 70%, 90% { transform: translateX(-4px); }
+    20%, 40%, 60%, 80% { transform: translateX(4px); }
+}
+
+.stat-shake {
+    animation: shake 0.5s ease-in-out;
+    font-weight: bold;
+    font-size: 1.3em;
+    transition: all 0.3s ease;
+}
+
 /* Header */
 .app-header {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -131,6 +145,27 @@ button:disabled {
     background: rgba(255, 255, 255, 0.2);
 }
 
+/* Text buttons (for undo/redo) */
+.text-btn {
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 0.5rem 0.75rem;
+    cursor: pointer;
+    font-size: 0.9rem;
+    color: #333;
+}
+
+.text-btn:hover {
+    background: #f0f0f0;
+}
+
+.text-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background: #f5f5f5;
+}
+
 .btn-primary {
     background: #667eea;
     padding: 0.75rem 1.5rem;
@@ -164,16 +199,18 @@ button:disabled {
     border-color: #667eea;
 }
 
-/* Add/Modify player buttons with dashed border */
+/* Add/Modify/Select player buttons with dashed border */
 .jersey-btn.add-player-btn,
-.jersey-btn.modify-player-btn {
+.jersey-btn.modify-player-btn,
+.jersey-btn.select-all-btn {
     border-style: dashed;
     border-color: #999;
     color: #999 !important;
 }
 
 .jersey-btn.add-player-btn:hover,
-.jersey-btn.modify-player-btn:hover {
+.jersey-btn.modify-player-btn:hover,
+.jersey-btn.select-all-btn:hover {
     border-color: #667eea;
     color: #667eea !important;
 }
@@ -194,6 +231,73 @@ button:disabled {
 .control-buttons .icon-btn.active {
     background: #667eea;
     color: white;
+}
+
+/* Mode Dropdown */
+.mode-dropdown {
+    position: relative;
+    display: inline-block;
+}
+
+.mode-dropdown-btn {
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.9rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    color: #333;
+    min-width: 120px;
+    justify-content: space-between;
+}
+
+.mode-dropdown-btn:hover {
+    background: #f0f0f0;
+}
+
+.mode-dropdown-menu {
+    display: none;
+    position: absolute;
+    top: 100%;
+    right: 0;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    margin-top: 4px;
+    min-width: 120px;
+    z-index: 1000;
+}
+
+.mode-dropdown-menu.show {
+    display: block;
+}
+
+.mode-option {
+    display: block;
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    background: none;
+    border: none;
+    text-align: left;
+    cursor: pointer;
+    color: #333;
+    font-size: 0.9rem;
+}
+
+.mode-option:hover {
+    background: #f0f0f0;
+}
+
+.mode-option:first-child {
+    border-radius: 4px 4px 0 0;
+}
+
+.mode-option:last-child {
+    border-radius: 0 0 4px 4px;
 }
 
 /* Stat Row */
@@ -327,6 +431,22 @@ button:disabled {
     color: #333 !important;
 }
 
+/* Turnover button styles (grey) */
+.action-btn.to-btn {
+    background: #d3d3d3 !important; /* Light grey */
+    color: #333 !important;
+}
+
+.action-btn.to-btn:hover {
+    background: #b8b8b8 !important;
+    color: #333 !important;
+}
+
+.action-btn.to-btn:active {
+    background: #808080 !important; /* Darker grey when pressed */
+    color: white !important;
+}
+
 /* Shot button styles - Made shots (light green) */
 .action-btn.shot-made {
     background: #90ee90 !important; /* Light green for made shots */
@@ -370,6 +490,30 @@ button:disabled {
     border-radius: 8px;
     overflow: hidden;
     background: #f8f9fa;
+}
+
+/* Stat button black border and text */
+.action-btn.stat-btn {
+    border: 2px solid #000;
+    color: #000 !important;
+}
+
+/* Stat Buttons Section (below court) */
+.stat-buttons-section {
+    width: 100%;
+    max-width: 800px;
+    margin: 1rem auto 0;
+    padding: 1rem;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.stat-buttons-section .stat-buttons-row {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    justify-content: center;
 }
 
 /* Mobile portrait optimizations */

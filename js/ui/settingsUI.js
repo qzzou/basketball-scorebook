@@ -119,6 +119,18 @@ const SettingsUI = (() => {
             const index = game.teamRoster.indexOf(jerseyNumber);
 
             if (index >= 0) {
+                // Check if player has any events in current game
+                const playerHasEvents = game.gameEvents.some(event =>
+                    event.eventStatus === 'active' && event.playerNumber === jerseyNumber
+                );
+
+                if (playerHasEvents) {
+                    // Prevent deselection if player has events
+                    const playerName = game.playerNames[jerseyNumber] || `Player ${jerseyNumber}`;
+                    alert(`Cannot remove ${playerName} (#${jerseyNumber}) - this player has recorded events in the current game.`);
+                    return;
+                }
+
                 // Remove from roster
                 game.teamRoster.splice(index, 1);
                 // Remove player name when jersey is removed

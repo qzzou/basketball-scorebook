@@ -17,11 +17,13 @@
         // Initialize UI
         UI.init();
 
-        // Ensure edit button is visually active on load
-        const editBtn = document.getElementById('edit-btn');
-        const viewBtn = document.getElementById('view-btn');
-        if (editBtn) editBtn.classList.add('active');
-        if (viewBtn) viewBtn.classList.remove('active');
+        // Listen for mode changes to update dropdown label
+        EventBus.on('mode:changed', (mode) => {
+            const modeLabel = document.getElementById('mode-label');
+            if (modeLabel) {
+                modeLabel.textContent = mode === 'edit' ? 'Editing' : 'View Only';
+            }
+        });
 
         console.log('Basketball Scorebook 2.0 - Ready!');
     });
@@ -48,24 +50,43 @@
             selectBtn.onclick = () => UI.handleSelectToggle();
         }
 
-        // Edit/View mode toggle
-        const editBtn = document.getElementById('edit-btn');
-        const viewBtn = document.getElementById('view-btn');
+        // Mode dropdown toggle
+        const modeBtn = document.getElementById('mode-btn');
+        const modeMenu = document.getElementById('mode-menu');
+        const modeLabel = document.getElementById('mode-label');
 
-        if (editBtn) {
-            editBtn.onclick = () => {
-                GameManager.switchToEditMode();
-                editBtn.classList.add('active');
-                if (viewBtn) viewBtn.classList.remove('active');
+        if (modeBtn && modeMenu) {
+            // Toggle dropdown on button click
+            modeBtn.onclick = (e) => {
+                e.stopPropagation();
+                modeMenu.classList.toggle('show');
             };
-        }
 
-        if (viewBtn) {
-            viewBtn.onclick = () => {
-                GameManager.switchToViewMode();
-                viewBtn.classList.add('active');
-                if (editBtn) editBtn.classList.remove('active');
-            };
+            // Close dropdown when clicking outside
+            document.addEventListener('click', () => {
+                modeMenu.classList.remove('show');
+            });
+
+            // Handle mode selection
+            const modeOptions = document.querySelectorAll('.mode-option');
+            modeOptions.forEach(option => {
+                option.onclick = () => {
+                    const mode = option.getAttribute('data-mode');
+                    const label = option.textContent;
+
+                    if (mode === 'edit') {
+                        GameManager.switchToEditMode();
+                    } else {
+                        GameManager.switchToViewMode();
+                    }
+
+                    if (modeLabel) {
+                        modeLabel.textContent = label;
+                    }
+
+                    modeMenu.classList.remove('show');
+                };
+            });
         }
 
         // Settings button
@@ -81,11 +102,6 @@
         }
 
         // Draw Row buttons
-        const redrawBtn = document.getElementById('redraw-btn');
-        if (redrawBtn) {
-            redrawBtn.onclick = () => UI.handleRedraw();
-        }
-
         const doneBtn = document.getElementById('done-btn');
         if (doneBtn) {
             doneBtn.onclick = () => UI.handleDone();

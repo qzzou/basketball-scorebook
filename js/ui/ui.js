@@ -72,6 +72,8 @@ const UI = (() => {
             } else {
                 // View mode - show combined stats
                 this.renderViewModeStats();
+                // Clear stat buttons in view mode
+                this.renderStatButtons();
             }
 
             // Update undo/redo buttons - hide in view mode, enable/disable in edit mode
@@ -91,10 +93,10 @@ const UI = (() => {
                 }
             }
 
-            // Update select button visibility (only show in view mode)
+            // Hide the original select button (now in jersey row in view mode)
             const selectBtn = document.getElementById('select-btn');
             if (selectBtn) {
-                selectBtn.style.display = appState.currentMode === 'view' ? 'inline-flex' : 'none';
+                selectBtn.style.display = 'none';
             }
 
             // Update Edit/View mode button visual states
@@ -161,12 +163,23 @@ const UI = (() => {
                 container.appendChild(btn);
             });
 
-            // Add "Modify" button after all players
-            const modifyBtn = document.createElement('button');
-            modifyBtn.className = 'jersey-btn modify-player-btn';
-            modifyBtn.innerHTML = '<i data-lucide="user-round-pen"></i>';
-            modifyBtn.onclick = () => SettingsUI.show();
-            container.appendChild(modifyBtn);
+            // Add mode-specific button after all players
+            if (appState.currentMode === 'edit') {
+                // Add "Modify" button in edit mode
+                const modifyBtn = document.createElement('button');
+                modifyBtn.className = 'jersey-btn modify-player-btn';
+                modifyBtn.innerHTML = '<i data-lucide="user-round-pen"></i>';
+                modifyBtn.onclick = () => SettingsUI.show();
+                container.appendChild(modifyBtn);
+            } else {
+                // Add "Select" button in view mode with dashed outline
+                const selectBtn = document.createElement('button');
+                selectBtn.className = 'jersey-btn select-all-btn';
+                selectBtn.id = 'select-btn-jersey-row';
+                selectBtn.innerHTML = '<i data-lucide="square-stack"></i>';
+                selectBtn.onclick = () => this.handleSelectToggle();
+                container.appendChild(selectBtn);
+            }
 
             // Initialize Lucide icons
             if (window.lucide) {
@@ -333,19 +346,19 @@ const UI = (() => {
                 statsHtml += `<div class="stat"><div class="value">${Formatters.format3PT(stats['3PT'])}</div><div class="label">3PT</div></div>`;
             }
             if (stats.REB > 0) {
-                statsHtml += `<div class="stat"><div class="value">${stats.REB}</div><div class="label">REB</div></div>`;
+                statsHtml += `<div class="stat" data-stat-type="REB"><div class="value">${stats.REB}</div><div class="label">REB</div></div>`;
             }
             if (stats.AST > 0) {
-                statsHtml += `<div class="stat"><div class="value">${stats.AST}</div><div class="label">AST</div></div>`;
+                statsHtml += `<div class="stat" data-stat-type="AST"><div class="value">${stats.AST}</div><div class="label">AST</div></div>`;
             }
             if (stats.STL > 0) {
-                statsHtml += `<div class="stat"><div class="value">${stats.STL}</div><div class="label">STL</div></div>`;
+                statsHtml += `<div class="stat" data-stat-type="STL"><div class="value">${stats.STL}</div><div class="label">STL</div></div>`;
             }
             if (stats.BLK > 0) {
-                statsHtml += `<div class="stat"><div class="value">${stats.BLK}</div><div class="label">BLK</div></div>`;
+                statsHtml += `<div class="stat" data-stat-type="BLK"><div class="value">${stats.BLK}</div><div class="label">BLK</div></div>`;
             }
             if (stats.TO > 0) {
-                statsHtml += `<div class="stat stat-warning"><div class="value">${stats.TO}</div><div class="label">TO</div></div>`;
+                statsHtml += `<div class="stat stat-warning" data-stat-type="TO"><div class="value">${stats.TO}</div><div class="label">TO</div></div>`;
             }
 
             container.innerHTML = `
@@ -354,22 +367,55 @@ const UI = (() => {
                 </div>
                 <div class="action-buttons-container">
                     <div class="shot-buttons-row">
-                        <button onclick="UI.handleShotButton(1, true)" class="action-btn shot-made" data-shot="FT-made">+1</button>
-                        <button onclick="UI.handleShotButton(2, true)" class="action-btn shot-made" data-shot="FG-made">+2</button>
-                        <button onclick="UI.handleShotButton(3, true)" class="action-btn shot-made" data-shot="3PT-made">+3</button>
-                        <button onclick="UI.handleShotButton(1, false)" class="action-btn shot-miss" data-shot="FT-miss">Miss FT</button>
-                        <button onclick="UI.handleShotButton(2, false)" class="action-btn shot-miss" data-shot="FG-miss">Miss FG</button>
-                        <button onclick="UI.handleShotButton(3, false)" class="action-btn shot-miss" data-shot="3PT-miss">Miss 3PT</button>
+                        <button onclick="UI.handleShotButton(1, true)" class="action-btn shot-made" data-shot="FT-made">
+                            +1 <svg width="10" height="10" style="margin-left: 4px; vertical-align: middle;"><circle cx="5" cy="5" r="4" fill="#000"/></svg>
+                        </button>
+                        <button onclick="UI.handleShotButton(2, true)" class="action-btn shot-made" data-shot="FG-made">
+                            +2 <svg width="14" height="14" style="margin-left: 4px; vertical-align: middle;"><circle cx="7" cy="7" r="6" fill="#4CAF50"/></svg>
+                        </button>
+                        <button onclick="UI.handleShotButton(3, true)" class="action-btn shot-made" data-shot="3PT-made">
+                            +3 <svg width="14" height="14" style="margin-left: 4px; vertical-align: middle;"><circle cx="7" cy="7" r="6" fill="#2196F3"/></svg>
+                        </button>
+                        <button onclick="UI.handleShotButton(1, false)" class="action-btn shot-miss" data-shot="FT-miss">
+                            Miss 1 <svg width="10" height="10" style="margin-left: 4px; vertical-align: middle;"><line x1="2" y1="2" x2="8" y2="8" stroke="#f44336" stroke-width="2" stroke-linecap="round"/><line x1="8" y1="2" x2="2" y2="8" stroke="#f44336" stroke-width="2" stroke-linecap="round"/></svg>
+                        </button>
+                        <button onclick="UI.handleShotButton(2, false)" class="action-btn shot-miss" data-shot="FG-miss">
+                            Miss 2 <svg width="14" height="14" style="margin-left: 4px; vertical-align: middle;"><line x1="3" y1="3" x2="11" y2="11" stroke="#f44336" stroke-width="2" stroke-linecap="round"/><line x1="11" y1="3" x2="3" y2="11" stroke="#f44336" stroke-width="2" stroke-linecap="round"/></svg>
+                        </button>
+                        <button onclick="UI.handleShotButton(3, false)" class="action-btn shot-miss" data-shot="3PT-miss">
+                            Miss 3 <svg width="14" height="14" style="margin-left: 4px; vertical-align: middle;"><line x1="3" y1="3" x2="11" y2="11" stroke="#f44336" stroke-width="2" stroke-linecap="round"/><line x1="11" y1="3" x2="3" y2="11" stroke="#f44336" stroke-width="2" stroke-linecap="round"/></svg>
+                        </button>
                     </div>
-                    <div class="stat-buttons-row">
-                        <button onclick="UI.handleStatButton('REB')" class="action-btn">+REB</button>
-                        <button onclick="UI.handleStatButton('AST')" class="action-btn">+AST</button>
-                        <button onclick="UI.handleStatButton('STL')" class="action-btn">+STL</button>
-                        <button onclick="UI.handleStatButton('BLK')" class="action-btn">+BLK</button>
-                        <button onclick="UI.handleStatButton('TO')" class="action-btn">+TO</button>
-                        <button onclick="UI.handleFoulButton('FOUL')" class="action-btn foul-btn">+FOUL</button>
-                        <button onclick="UI.handleFoulButton('TECH')" class="action-btn tech-btn">+TECH</button>
-                    </div>
+                </div>
+            `;
+
+            // Render stat buttons below court
+            this.renderStatButtons();
+        },
+
+        /**
+         * Render stat buttons below court canvas
+         */
+        renderStatButtons() {
+            const appState = DataModel.getAppState();
+            const container = document.getElementById('shot-buttons-section');
+            if (!container) return;
+
+            // Only show stat buttons in edit mode when a player is selected
+            if (appState.currentMode !== 'edit' || appState.selectedJersey === null) {
+                container.innerHTML = '';
+                return;
+            }
+
+            container.innerHTML = `
+                <div class="stat-buttons-row">
+                    <button onclick="UI.handleStatButton('REB')" class="action-btn stat-btn">+REB</button>
+                    <button onclick="UI.handleStatButton('AST')" class="action-btn stat-btn">+AST</button>
+                    <button onclick="UI.handleStatButton('STL')" class="action-btn stat-btn">+STL</button>
+                    <button onclick="UI.handleStatButton('BLK')" class="action-btn stat-btn">+BLK</button>
+                    <button onclick="UI.handleStatButton('TO')" class="action-btn stat-btn to-btn">+TO</button>
+                    <button onclick="UI.handleFoulButton('FOUL')" class="action-btn stat-btn foul-btn">+FOUL</button>
+                    <button onclick="UI.handleFoulButton('TECH')" class="action-btn stat-btn tech-btn">+TECH</button>
                 </div>
             `;
         },
@@ -455,6 +501,17 @@ const UI = (() => {
             }[statType] || statType;
 
             this.showCourtOverlay(`#${jerseyNumber} ${playerName} made ${statName}`);
+
+            // Trigger shake animation on the stat field (after a small delay for re-render)
+            setTimeout(() => {
+                const statElement = document.querySelector(`[data-stat-type="${statType}"]`);
+                if (statElement) {
+                    statElement.classList.add('stat-shake');
+                    setTimeout(() => {
+                        statElement.classList.remove('stat-shake');
+                    }, 3000); // Remove after 3 seconds
+                }
+            }, 100);
         },
 
         /**
@@ -672,7 +729,7 @@ const UI = (() => {
             const drawText = document.getElementById('draw-text');
             const drawRow = document.getElementById('draw-row');
 
-            drawText.textContent = `#${jerseyNumber} ${playerName} ${result} a ${shotName}, tap anywhere on court to record the shot`;
+            drawText.textContent = `#${jerseyNumber} ${playerName} ${result} a ${shotName}, tap anywhere on court, and press DONE to record the shot.`;
             drawRow.style.display = 'flex';
         },
 

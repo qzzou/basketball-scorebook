@@ -29,21 +29,25 @@
             <div class="section-header">
                 <h2>Shot Map</h2>
                 <div class="control-buttons">
-                    <button id="undo-btn" class="icon-btn" title="Undo">
-                        <i data-lucide="undo"></i>
+                    <button id="undo-btn" class="text-btn" title="Undo">
+                        Undo
                     </button>
-                    <button id="redo-btn" class="icon-btn" title="Redo">
-                        <i data-lucide="redo"></i>
+                    <button id="redo-btn" class="text-btn" title="Redo">
+                        Redo
                     </button>
                     <button id="select-btn" class="icon-btn" title="Select All / Clear All" style="display: none;">
                         <i data-lucide="users"></i>
                     </button>
-                    <button id="edit-btn" class="icon-btn active" title="Edit Mode">
-                        <i data-lucide="square-pen"></i>
-                    </button>
-                    <button id="view-btn" class="icon-btn" title="View Mode">
-                        <i data-lucide="eye"></i>
-                    </button>
+                    <div class="mode-dropdown">
+                        <button id="mode-btn" class="mode-dropdown-btn">
+                            <span id="mode-label">Editing</span>
+                            <i data-lucide="chevron-down" style="width: 16px; height: 16px; margin-left: 4px;"></i>
+                        </button>
+                        <div id="mode-menu" class="mode-dropdown-menu">
+                            <button class="mode-option" data-mode="edit">Editing</button>
+                            <button class="mode-option" data-mode="view">View Only</button>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -59,7 +63,6 @@
             <div id="draw-row" class="draw-row" style="display: none;">
                 <div class="draw-text" id="draw-text"></div>
                 <div class="draw-buttons">
-                    <button id="redraw-btn" class="btn-secondary">Redraw</button>
                     <button id="done-btn" class="btn-primary">Done</button>
                     <button id="cancel-btn" class="btn-secondary">Cancel</button>
                 </div>
@@ -69,6 +72,9 @@
             <div class="court-container">
                 <canvas id="shots-map-canvas"></canvas>
             </div>
+
+            <!-- Stat Buttons (below court) -->
+            <div id="shot-buttons-section" class="stat-buttons-section"></div>
         </section>
 
         <!-- Action Log Section -->
