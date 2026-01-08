@@ -1,6 +1,46 @@
 // Shot Renderer - Draw shot markers on court canvas
 
 const ShotRenderer = (() => {
+    /**
+     * Get court boundaries in normalized coordinates
+     * This matches the court rendering logic to ensure coordinates align
+     * @param {number} canvasWidth - Canvas width in pixels
+     * @param {number} canvasHeight - Canvas height in pixels
+     * @returns {Object} - {courtStartX, courtStartY, courtSizeX, courtSizeY}
+     */
+    function getCourtBoundaries(canvasWidth, canvasHeight) {
+        // Same logic as courtRenderer.js
+        const paddingPercent = 0.03;
+        const availableWidth = canvasWidth * (1 - 2 * paddingPercent);
+        const availableHeight = canvasHeight * (1 - 2 * paddingPercent);
+
+        // Court dimensions (landscape mode)
+        const courtLengthFt = 94;
+        const courtWidthFt = 50;
+        const aspectRatio = courtWidthFt / courtLengthFt; // 50/94
+
+        let courtWidth = availableWidth;
+        let courtHeight = courtWidth * aspectRatio;
+
+        // If height exceeds available, scale by height instead
+        if (courtHeight > availableHeight) {
+            courtHeight = availableHeight;
+            courtWidth = courtHeight / aspectRatio;
+        }
+
+        // Center the court on canvas
+        const courtX = (canvasWidth - courtWidth) / 2;
+        const courtY = (canvasHeight - courtHeight) / 2;
+
+        // Return normalized coordinates (0-1 range)
+        return {
+            courtStartX: courtX / canvasWidth,
+            courtStartY: courtY / canvasHeight,
+            courtSizeX: courtWidth / canvasWidth,
+            courtSizeY: courtHeight / canvasHeight
+        };
+    }
+
     return {
         /**
          * Draw all shots on the canvas
@@ -134,27 +174,209 @@ const ShotRenderer = (() => {
         },
 
         /**
+         * Snap free throw to within the free throw circle (6ft radius)
+         * @param {number} normalizedX - X coordinate (0-1)
+         * @param {number} normalizedY - Y coordinate (0-1)
+         * @returns {Object} - {x, y} snapped coordinates
+         */
+        snapToFreeThrowCircle(normalizedX, normalizedY) {
+            // Get canvas to calculate court boundaries
+            const canvas = document.getElementById('shots-map-canvas');
+            if (!canvas) return { x: normalizedX, y: normalizedY };
+
+            const canvasWidth = canvas.clientWidth;
+            const canvasHeight = canvas.clientHeight;
+            const boundaries = getCourtBoundaries(canvasWidth, canvasHeight);
+
+            // Convert normalized canvas coords to normalized court coords
+            const courtX = (normalizedX - boundaries.courtStartX) / boundaries.courtSizeX;
+            const courtY = (normalizedY - boundaries.courtStartY) / boundaries.courtSizeY;
+
+            // Court and FT dimensions
+            const courtLengthFt = 94;
+            const courtWidthFt = 50;
+            const basketDistanceFromBaseline = 4 / courtLengthFt; // ~0.0426
+            const ftLineDistance = 19 / courtLengthFt; // ~0.2021 (19ft from baseline)
+            const keyWidthFt = 12; // Key/lane width in feet
+            const threePointRadiusFt = 22.146; // 3PT arc radius from basket
+
+            // Determine which half of court based on X (which basket)
+            let basketX, basketY_center, ftLineX, threePtArcX;
+            if (courtX < 0.5) {
+                // Left side
+                basketX = basketDistanceFromBaseline;
+                ftLineX = ftLineDistance; // 19ft from baseline
+                basketY_center = 0.5;
+                // 3PT arc at basketX + 22.146ft
+                threePtArcX = basketX + threePointRadiusFt / courtLengthFt;
+            } else {
+                // Right side
+                basketX = 1 - basketDistanceFromBaseline;
+                ftLineX = 1 - ftLineDistance; // 19ft from baseline
+                basketY_center = 0.5;
+                // 3PT arc at basketX - 22.146ft
+                threePtArcX = basketX - threePointRadiusFt / courtLengthFt;
+            }
+
+            // Calculate Y position in feet from center
+            const dyFeet = (courtY - basketY_center) * courtWidthFt;
+            const yDistanceFromCenterFeet = Math.abs(dyFeet);
+            const halfKeyWidth = keyWidthFt / 2; // 6 feet
+
+            // Snap to rectangular area:
+            // X: Between FT line and 3PT arc
+            // Y: Within key width (±6ft from center)
+
+            let snappedCourtX = courtX;
+            let snappedCourtY = courtY;
+
+            // Clamp X to be between FT line and 3PT arc
+            if (courtX < 0.5) {
+                // Left side: FT line is at ftLineX, 3PT arc is at threePtArcX
+                if (courtX < ftLineX) {
+                    snappedCourtX = ftLineX; // Too close to basket
+                } else if (courtX > threePtArcX) {
+                    snappedCourtX = threePtArcX; // Too far from basket
+                }
+            } else {
+                // Right side: 3PT arc is at threePtArcX, FT line is at ftLineX
+                if (courtX > ftLineX) {
+                    snappedCourtX = ftLineX; // Too close to basket
+                } else if (courtX < threePtArcX) {
+                    snappedCourtX = threePtArcX; // Too far from basket
+                }
+            }
+
+            // Clamp Y to be within key width
+            if (yDistanceFromCenterFeet > halfKeyWidth) {
+                const ySign = dyFeet >= 0 ? 1 : -1;
+                snappedCourtY = basketY_center + (ySign * halfKeyWidth) / courtWidthFt;
+            }
+
+            // Convert back to canvas normalized coords
+            return {
+                x: snappedCourtX * boundaries.courtSizeX + boundaries.courtStartX,
+                y: snappedCourtY * boundaries.courtSizeY + boundaries.courtStartY
+            };
+        },
+
+        /**
+         * Snap shot location to be inside or outside the 3PT arc
+         * @param {number} normalizedX - X coordinate (0-1)
+         * @param {number} normalizedY - Y coordinate (0-1)
+         * @param {boolean} outside - True to snap outside arc, false for inside
+         * @returns {Object} - {x, y} snapped coordinates
+         */
+        snapTo3PTArc(normalizedX, normalizedY, outside) {
+            // Get canvas to calculate court boundaries
+            const canvas = document.getElementById('shots-map-canvas');
+            if (!canvas) return { x: normalizedX, y: normalizedY };
+
+            const canvasWidth = canvas.clientWidth;
+            const canvasHeight = canvas.clientHeight;
+            const boundaries = getCourtBoundaries(canvasWidth, canvasHeight);
+
+            // Convert normalized canvas coords to normalized court coords
+            const courtX = (normalizedX - boundaries.courtStartX) / boundaries.courtSizeX;
+            const courtY = (normalizedY - boundaries.courtStartY) / boundaries.courtSizeY;
+
+            // Basketball court dimensions (landscape mode)
+            // 3PT arc: 22.146ft from basket center (4ft from baseline)
+            // Court is 94ft x 50ft
+            const courtLengthFt = 94;
+            const courtWidthFt = 50;
+            const basketDistanceFromBaseline = 4 / courtLengthFt; // ~0.0426
+            const threePointRadiusFt = 22.146; // feet
+
+            // Left basket center (normalized): ~0.0426
+            // Right basket center (normalized): ~0.9574
+            const leftBasketX = basketDistanceFromBaseline;
+            const rightBasketX = 1 - basketDistanceFromBaseline;
+            const basketY = 0.5; // Center of court vertically
+
+            // Determine which basket is closer
+            const distToLeft = Math.abs(courtX - leftBasketX);
+            const distToRight = Math.abs(courtX - rightBasketX);
+
+            let basketX, basketY_center;
+            if (distToLeft < distToRight) {
+                // Closer to left basket
+                basketX = leftBasketX;
+                basketY_center = basketY;
+            } else {
+                // Closer to right basket
+                basketX = rightBasketX;
+                basketY_center = basketY;
+            }
+
+            // Calculate distance from basket to click point IN FEET
+            // IMPORTANT: Court is 94ft x 50ft (not square!), so scale each dimension
+            const dxFeet = (courtX - basketX) * courtLengthFt;
+            const dyFeet = (courtY - basketY_center) * courtWidthFt;
+            const distanceFeet = Math.sqrt(dxFeet * dxFeet + dyFeet * dyFeet);
+
+            if (outside) {
+                // Snap to outside the 3PT arc - if clicked inside, push outside
+                if (distanceFeet <= threePointRadiusFt) {
+                    const angle = Math.atan2(dyFeet, dxFeet);
+                    const newDistanceFt = threePointRadiusFt + 1; // 1 foot margin outside
+                    // Convert back to normalized court coords
+                    const snappedCourtX = basketX + (Math.cos(angle) * newDistanceFt) / courtLengthFt;
+                    const snappedCourtY = basketY_center + (Math.sin(angle) * newDistanceFt) / courtWidthFt;
+
+                    // Convert back to canvas normalized coords
+                    return {
+                        x: snappedCourtX * boundaries.courtSizeX + boundaries.courtStartX,
+                        y: snappedCourtY * boundaries.courtSizeY + boundaries.courtStartY
+                    };
+                }
+            } else {
+                // Snap to inside the 3PT arc - if clicked outside, pull inside
+                if (distanceFeet >= threePointRadiusFt) {
+                    const angle = Math.atan2(dyFeet, dxFeet);
+                    const newDistanceFt = threePointRadiusFt - 1; // 1 foot margin inside
+                    // Convert back to normalized court coords
+                    const snappedCourtX = basketX + (Math.cos(angle) * newDistanceFt) / courtLengthFt;
+                    const snappedCourtY = basketY_center + (Math.sin(angle) * newDistanceFt) / courtWidthFt;
+
+                    // Convert back to canvas normalized coords
+                    return {
+                        x: snappedCourtX * boundaries.courtSizeX + boundaries.courtStartX,
+                        y: snappedCourtY * boundaries.courtSizeY + boundaries.courtStartY
+                    };
+                }
+            }
+
+            // Point is already in correct zone, return as-is
+            return { x: normalizedX, y: normalizedY };
+        },
+
+        /**
          * Adjust shot location to avoid overlap and snap FT to line
          */
         adjustShotLocation(normalizedX, normalizedY, shotType) {
             const game = DataModel.getCurrentGame();
             if (!game) return { x: normalizedX, y: normalizedY };
 
-            // For free throws, snap to nearest FT line
+            // For free throws, snap to within the free throw circle (6ft radius)
             if (shotType === 'FT') {
-                // Landscape court: FT lines are at ~19ft from baselines
-                // Normalized positions: ~0.2 and ~0.8 for left and right FT lines
-                const leftFT = 0.2;
-                const rightFT = 0.8;
+                const snapped = this.snapToFreeThrowCircle(normalizedX, normalizedY);
+                normalizedX = snapped.x;
+                normalizedY = snapped.y;
+            }
 
-                if (normalizedX < 0.5) {
-                    normalizedX = leftFT;
-                } else {
-                    normalizedX = rightFT;
-                }
+            // For 3PT shots, snap to outside the 3PT arc
+            if (shotType === '3PT') {
+                const snapped = this.snapTo3PTArc(normalizedX, normalizedY, true); // outside = true
+                normalizedX = snapped.x;
+                normalizedY = snapped.y;
+            }
 
-                // Keep Y as is but clamp to lane area (center 3rd of court)
-                normalizedY = Math.max(0.35, Math.min(0.65, normalizedY));
+            // For 2PT shots (FG), snap to inside the 3PT arc
+            if (shotType === 'FG') {
+                const snapped = this.snapTo3PTArc(normalizedX, normalizedY, false); // outside = false
+                normalizedX = snapped.x;
+                normalizedY = snapped.y;
             }
 
             // Check for overlaps with existing shots
@@ -191,6 +413,12 @@ const ShotRenderer = (() => {
 
                 if (!hasOverlap) break;
                 attempts++;
+            }
+
+            // If we couldn't find a non-overlapping position after maxAttempts,
+            // just use the original snapped position (breaking overlap rule is acceptable)
+            if (attempts >= maxAttempts) {
+                adjusted = { x: normalizedX, y: normalizedY };
             }
 
             // Clamp to canvas bounds

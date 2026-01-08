@@ -68,6 +68,8 @@ const UI = (() => {
                     const game = DataModel.getCurrentGame();
                     const helpText = game.teamRoster.length === 0 ? 'Add a player above to begin' : 'Select a player above to begin';
                     document.getElementById('stat-row').innerHTML = `<p>${helpText}</p>`;
+                    // Clear stat buttons when no player selected
+                    this.renderStatButtons();
                 }
             } else {
                 // View mode - show combined stats

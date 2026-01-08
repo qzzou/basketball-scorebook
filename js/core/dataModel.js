@@ -172,6 +172,7 @@ const DataModel = (() => {
             appState.selectedShotType = null;
             appState.selectedJerseys = [];
             appState.correctionEventIndex = null;
+            appState.pendingShot = null;
         },
 
         /**

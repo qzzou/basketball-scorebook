@@ -44,19 +44,25 @@ const HelpUI = (() => {
                                 <li>Select a player by clicking their jersey number</li>
                                 <li>Click a shot button (Made FT, Made FG, Made 3PT, Miss FT, Miss FG, Miss 3PT)</li>
                                 <li>A yellow <strong>Draw Row</strong> appears with instructions</li>
-                                <li><strong>Tap</strong> on the court canvas where the shot was taken</li>
+                                <li><strong>Tap</strong> on the court canvas near where the shot was taken</li>
+                                <li>The shot location will automatically snap to the appropriate zone:
+                                    <ul>
+                                        <li><strong>3PT shots</strong>: Snap outside the 3-point arc</li>
+                                        <li><strong>2PT shots</strong>: Snap inside the 3-point arc</li>
+                                        <li><strong>Free throws</strong>: Snap to the free throw area between the FT line and 3PT arc</li>
+                                    </ul>
+                                </li>
                                 <li>Preview the shot location (green circle for made, red X for missed)</li>
-                                <li>Click <strong>Done</strong> to save, <strong>Redraw</strong> to adjust, or <strong>Cancel</strong> to discard</li>
-                                <li>Shots are sized by type: FT (small black), FG (medium), 3PT (large blue for made)</li>
+                                <li>Click <strong>Done</strong> to save, tap again to adjust location, or click <strong>Cancel</strong> to discard</li>
                             </ul>
 
                             <h4>Shot Display</h4>
                             <ul>
                                 <li><strong>Made shots</strong>: Filled circles (green for FG/FT, blue for 3PT)</li>
                                 <li><strong>Missed shots</strong>: Red X marks</li>
-                                <li><strong>Free throws</strong>: Auto-snap to FT line positions, shown in black</li>
+                                <li><strong>Shot sizes</strong>: FT (small), FG (medium), 3PT (large)</li>
+                                <li><strong>Automatic positioning</strong>: Shots snap to correct zones and auto-adjust to avoid overlapping when possible</li>
                                 <li><strong>Tap a shot</strong> in view mode to see player info</li>
-                                <li>Shots auto-adjust to avoid overlapping</li>
                             </ul>
 
                             <h4>Other Stats</h4>
@@ -89,58 +95,62 @@ const HelpUI = (() => {
                         <section class="help-section">
                             <h3>View Mode</h3>
                             <ul>
-                                <li>Click <strong>View Mode</strong> button to enter view mode</li>
+                                <li>Click the mode dropdown and select <strong>View Only</strong> to enter view mode</li>
                                 <li>All players are selected by default</li>
-                                <li>Click <strong>Select</strong> button to toggle select all/clear all</li>
-                                <li>Click individual jerseys to filter shots on the court</li>
-                                <li>Stats show combined totals for selected players</li>
-                                <li>Tap shots on the court to see player info</li>
+                                <li>Click <strong>Select</strong> button to toggle between select all and clear all</li>
+                                <li>Click individual jersey numbers to select/deselect specific players</li>
+                                <li>The court shows only shots from selected players</li>
+                                <li>Stats display combined totals for all selected players</li>
+                                <li>Tap any shot on the court to see which player took it</li>
+                                <li>Switch back to <strong>Editing</strong> mode to record new stats</li>
                             </ul>
                         </section>
 
                         <section class="help-section">
                             <h3>Game Management</h3>
-                            <p>All game management buttons are located in the <strong>Game Management</strong> section on the front page.</p>
+                            <p>All game management buttons are located in the <strong>Game Management</strong> section on the main page.</p>
 
                             <h4>History</h4>
                             <ul>
-                                <li>View all saved games with scores and dates</li>
-                                <li><strong>Load</strong>: Switch to a different game (enters view mode)</li>
-                                <li><strong>Export</strong>: Download a specific game as JSON</li>
-                                <li><strong>Delete</strong>: Remove a game (cannot delete the only game)</li>
+                                <li>View all saved games with team names, scores, and dates</li>
+                                <li><strong>Load</strong>: Switch to a different game (automatically enters view mode)</li>
+                                <li><strong>Export</strong>: Download a specific game as JSON file</li>
+                                <li><strong>Delete</strong>: Remove a game permanently (cannot delete if it's the only game)</li>
                             </ul>
 
                             <h4>Export & Import</h4>
                             <ul>
-                                <li><strong>Export</strong>: Download current game as JSON file</li>
-                                <li><strong>Import</strong>: Load a game from JSON file</li>
-                                <li>Use for backups or sharing games</li>
+                                <li><strong>Export</strong>: Download the current game as a JSON file</li>
+                                <li><strong>Import</strong>: Load a game from a JSON file</li>
+                                <li>Perfect for backups, sharing games, or transferring between devices</li>
                             </ul>
 
                             <h4>Clear Game</h4>
                             <ul>
-                                <li>Removes all events from the current game</li>
+                                <li>Removes all events (shots, fouls, stats) from the current game</li>
                                 <li>Team roster and player names are preserved</li>
-                                <li>Cannot be undone - use with caution!</li>
+                                <li>Returns to editing mode with no player selected</li>
+                                <li><strong>Warning:</strong> Cannot be undone - use with caution!</li>
                             </ul>
 
                             <h4>New Game</h4>
                             <ul>
-                                <li>Start a new game with a fresh event log</li>
-                                <li>Current game is saved automatically</li>
-                                <li>Team roster and names are preserved</li>
-                                <li>Enters edit mode by default</li>
+                                <li>Creates a new game with a fresh event log</li>
+                                <li>Current game is automatically saved before creating the new one</li>
+                                <li>Team roster and player names are copied to the new game</li>
+                                <li>Automatically switches to editing mode</li>
                             </ul>
                         </section>
 
                         <section class="help-section">
                             <h3>Tips & Tricks</h3>
                             <ul>
-                                <li><strong>Auto-save</strong>: Every action is automatically saved</li>
-                                <li><strong>Mobile</strong>: Works great on phones and tablets</li>
-                                <li><strong>Gestures</strong>: Pinch to zoom and scroll work on the court canvas</li>
-                                <li><strong>Landscape</strong>: Court always displays in landscape orientation</li>
-                                <li><strong>Offline</strong>: All data is stored locally in your browser</li>
+                                <li><strong>Auto-save</strong>: Every action is automatically saved to your browser</li>
+                                <li><strong>Smart snapping</strong>: Shots automatically position to the correct zones - just tap near the location</li>
+                                <li><strong>Quick corrections</strong>: Use Undo for recent mistakes, or click actions in the Action Log for older corrections</li>
+                                <li><strong>Mobile friendly</strong>: Works great on phones and tablets</li>
+                                <li><strong>Offline ready</strong>: All data is stored locally - no internet connection required</li>
+                                <li><strong>Export regularly</strong>: Back up your games by exporting as JSON files</li>
                             </ul>
                         </section>
 

@@ -174,6 +174,16 @@ const GameManager = (() => {
             DataModel.resetAppState();
             DataModel.switchToEditMode();
 
+            // Hide Draw Row if visible
+            const drawRow = document.getElementById('draw-row');
+            if (drawRow) {
+                drawRow.style.display = 'none';
+            }
+
+            // Clear pending shot state
+            const appState = DataModel.getAppState();
+            appState.pendingShot = null;
+
             // Save game
             Storage.saveGame(game);
 
