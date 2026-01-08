@@ -17,8 +17,8 @@ const SettingsUI = (() => {
                 <div class="modal-content settings-modal">
                     <div class="modal-header">
                         <h2>Settings</h2>
-                        <button class="icon-btn close-btn" onclick="SettingsUI.close()">
-                            <i data-lucide="x"></i>
+                        <button class="btn-primary" onclick="SettingsUI.close()" style="display: flex; align-items: center; gap: 0.5rem;">
+                            autosaved <i data-lucide="x"></i>
                         </button>
                     </div>
                     <div class="modal-body">
@@ -43,6 +43,13 @@ const SettingsUI = (() => {
                         <div class="settings-section">
                             <label>Player Names</label>
                             <div id="player-names-section" class="player-names-section"></div>
+                        </div>
+
+                        <!-- Bottom Save Button -->
+                        <div class="settings-section" style="text-align: right; margin-top: 1.5rem;">
+                            <button class="btn-primary" onclick="SettingsUI.close()" style="display: inline-flex; align-items: center; gap: 0.5rem;">
+                                autosaved <i data-lucide="x"></i>
+                            </button>
                         </div>
                     </div>
                 </div>
