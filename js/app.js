@@ -114,7 +114,7 @@
 
         const importBtn = document.getElementById('import-btn');
         if (importBtn) {
-            importBtn.onclick = () => Storage.importGameFromJSON();
+            importBtn.onclick = () => SettingsUI.handleImport();
         }
 
         const clearGameBtn = document.getElementById('clear-game-btn');

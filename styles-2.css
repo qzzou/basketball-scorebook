@@ -164,6 +164,20 @@ button:disabled {
     border-color: #667eea;
 }
 
+/* Add/Modify player buttons with dashed border */
+.jersey-btn.add-player-btn,
+.jersey-btn.modify-player-btn {
+    border-style: dashed;
+    border-color: #999;
+    color: #999 !important;
+}
+
+.jersey-btn.add-player-btn:hover,
+.jersey-btn.modify-player-btn:hover {
+    border-color: #667eea;
+    color: #667eea !important;
+}
+
 .control-buttons {
     display: flex;
     gap: 0.5rem;
@@ -311,6 +325,40 @@ button:disabled {
 .action-btn.tech-btn:active {
     background: #ffff00 !important; /* Bright yellow when pressed */
     color: #333 !important;
+}
+
+/* Shot button styles - Made shots (light green) */
+.action-btn.shot-made {
+    background: #90ee90 !important; /* Light green for made shots */
+    color: #333 !important; /* Dark text for better contrast */
+}
+
+.action-btn.shot-made:hover {
+    background: #7dd87d !important;
+    color: #333 !important;
+}
+
+.action-btn.shot-made:active,
+.action-btn.shot-made.selected {
+    background: #4caf50 !important; /* Saturated green when pressed/selected */
+    color: white !important;
+}
+
+/* Shot button styles - Missed shots (light grey) */
+.action-btn.shot-miss {
+    background: #d3d3d3 !important; /* Light grey for missed shots */
+    color: #333 !important; /* Dark text for better contrast */
+}
+
+.action-btn.shot-miss:hover {
+    background: #b8b8b8 !important;
+    color: #333 !important;
+}
+
+.action-btn.shot-miss:active,
+.action-btn.shot-miss.selected {
+    background: #808080 !important; /* Saturated grey when pressed/selected */
+    color: white !important;
 }
 
 /* Court Canvas */
@@ -1065,6 +1113,9 @@ button:disabled {
     flex: 1;
     font-weight: 500;
     color: #856404;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    white-space: normal;
 }
 
 .draw-buttons {

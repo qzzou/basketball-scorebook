@@ -45,10 +45,6 @@ const SettingsUI = (() => {
                             <div id="player-names-section" class="player-names-section"></div>
                         </div>
                     </div>
-                    <div class="modal-footer">
-                        <button onclick="SettingsUI.close()" class="btn-secondary">Cancel</button>
-                        <button onclick="SettingsUI.save()" class="btn-primary">Save Changes</button>
-                    </div>
                 </div>
             `;
 
@@ -80,11 +76,13 @@ const SettingsUI = (() => {
         },
 
         /**
-         * Close settings modal
+         * Close settings modal (auto-saves changes)
          */
         close() {
             const overlay = document.getElementById('settings-overlay');
             if (overlay) {
+                // Auto-save changes before closing
+                this.save();
                 overlay.remove();
             }
         },
@@ -123,6 +121,8 @@ const SettingsUI = (() => {
             if (index >= 0) {
                 // Remove from roster
                 game.teamRoster.splice(index, 1);
+                // Remove player name when jersey is removed
+                delete game.playerNames[jerseyNumber];
             } else {
                 // Add to roster
                 game.teamRoster.push(jerseyNumber);
@@ -181,15 +181,20 @@ const SettingsUI = (() => {
          */
         save() {
             const game = DataModel.getCurrentGame();
+            const gameNameInput = document.getElementById('settings-game-name');
+            const teamNameInput = document.getElementById('settings-team-name');
+
+            // Only proceed if modal is still open
+            if (!gameNameInput || !teamNameInput) return;
 
             // Update game name
-            const gameName = document.getElementById('settings-game-name').value;
+            const gameName = gameNameInput.value;
             if (gameName && gameName !== game.gameName) {
                 GameManager.updateGameName(gameName);
             }
 
             // Update team name
-            const teamName = document.getElementById('settings-team-name').value;
+            const teamName = teamNameInput.value;
             if (teamName && teamName !== game.teamName) {
                 GameManager.updateTeamName(teamName);
             }
@@ -200,9 +205,6 @@ const SettingsUI = (() => {
             // Update player names (already updated in real-time)
             // Just trigger a save
             Storage.saveGame(game);
-
-            // Close modal
-            this.close();
 
             // Re-render UI
             UI.render();

@@ -65,7 +65,9 @@ const UI = (() => {
                 if (appState.selectedJersey !== null) {
                     this.renderStatRow(appState.selectedJersey);
                 } else {
-                    document.getElementById('stat-row').innerHTML = '<p>Select a player above to begin</p>';
+                    const game = DataModel.getCurrentGame();
+                    const helpText = game.teamRoster.length === 0 ? 'Add a player above to begin' : 'Select a player above to begin';
+                    document.getElementById('stat-row').innerHTML = `<p>${helpText}</p>`;
                 }
             } else {
                 // View mode - show combined stats
@@ -94,6 +96,17 @@ const UI = (() => {
             if (selectBtn) {
                 selectBtn.style.display = appState.currentMode === 'view' ? 'inline-flex' : 'none';
             }
+
+            // Update Edit/View mode button visual states
+            const editBtn = document.getElementById('edit-btn');
+            const viewBtn = document.getElementById('view-btn');
+            if (appState.currentMode === 'edit') {
+                if (editBtn) editBtn.classList.add('active');
+                if (viewBtn) viewBtn.classList.remove('active');
+            } else {
+                if (viewBtn) viewBtn.classList.add('active');
+                if (editBtn) editBtn.classList.remove('active');
+            }
         },
 
         /**
@@ -109,6 +122,22 @@ const UI = (() => {
 
             container.innerHTML = '';
 
+            // If no players, show "Add Player" button
+            if (game.teamRoster.length === 0) {
+                const addBtn = document.createElement('button');
+                addBtn.className = 'jersey-btn add-player-btn';
+                addBtn.innerHTML = '<i data-lucide="user-round-plus"></i>';
+                addBtn.onclick = () => SettingsUI.show();
+                container.appendChild(addBtn);
+
+                // Initialize Lucide icons
+                if (window.lucide) {
+                    lucide.createIcons();
+                }
+                return;
+            }
+
+            // Render jersey buttons
             game.teamRoster.forEach(jerseyNumber => {
                 const btn = document.createElement('button');
                 btn.textContent = jerseyNumber;
@@ -131,6 +160,18 @@ const UI = (() => {
 
                 container.appendChild(btn);
             });
+
+            // Add "Modify" button after all players
+            const modifyBtn = document.createElement('button');
+            modifyBtn.className = 'jersey-btn modify-player-btn';
+            modifyBtn.innerHTML = '<i data-lucide="user-round-pen"></i>';
+            modifyBtn.onclick = () => SettingsUI.show();
+            container.appendChild(modifyBtn);
+
+            // Initialize Lucide icons
+            if (window.lucide) {
+                lucide.createIcons();
+            }
         },
 
         /**
@@ -145,6 +186,10 @@ const UI = (() => {
             } else {
                 appState.selectedJersey = jerseyNumber;
             }
+
+            // Clear shot button selection when switching players
+            const shotButtons = document.querySelectorAll('.shot-buttons-row .action-btn');
+            shotButtons.forEach(btn => btn.classList.remove('selected'));
 
             this.render();
         },
@@ -309,12 +354,12 @@ const UI = (() => {
                 </div>
                 <div class="action-buttons-container">
                     <div class="shot-buttons-row">
-                        <button onclick="UI.handleShotButton(1, true)" class="action-btn">Made FT</button>
-                        <button onclick="UI.handleShotButton(2, true)" class="action-btn">Made FG</button>
-                        <button onclick="UI.handleShotButton(3, true)" class="action-btn">Made 3PT</button>
-                        <button onclick="UI.handleShotButton(1, false)" class="action-btn">Miss FT</button>
-                        <button onclick="UI.handleShotButton(2, false)" class="action-btn">Miss FG</button>
-                        <button onclick="UI.handleShotButton(3, false)" class="action-btn">Miss 3PT</button>
+                        <button onclick="UI.handleShotButton(1, true)" class="action-btn shot-made" data-shot="FT-made">+1</button>
+                        <button onclick="UI.handleShotButton(2, true)" class="action-btn shot-made" data-shot="FG-made">+2</button>
+                        <button onclick="UI.handleShotButton(3, true)" class="action-btn shot-made" data-shot="3PT-made">+3</button>
+                        <button onclick="UI.handleShotButton(1, false)" class="action-btn shot-miss" data-shot="FT-miss">Miss FT</button>
+                        <button onclick="UI.handleShotButton(2, false)" class="action-btn shot-miss" data-shot="FG-miss">Miss FG</button>
+                        <button onclick="UI.handleShotButton(3, false)" class="action-btn shot-miss" data-shot="3PT-miss">Miss 3PT</button>
                     </div>
                     <div class="stat-buttons-row">
                         <button onclick="UI.handleStatButton('REB')" class="action-btn">+REB</button>
@@ -366,6 +411,16 @@ const UI = (() => {
             // Deselect all other shot buttons, select this one
             appState.selectedShotType = { points, made, shotType };
             appState.pendingShot = null; // Clear any pending shot
+
+            // Update shot button selection visuals
+            const shotButtons = document.querySelectorAll('.shot-buttons-row .action-btn');
+            shotButtons.forEach(btn => btn.classList.remove('selected'));
+
+            // Find and select the clicked button
+            const clickedButton = event.target;
+            if (clickedButton && clickedButton.classList.contains('action-btn')) {
+                clickedButton.classList.add('selected');
+            }
 
             // Show Draw Row
             this.showDrawRow(jerseyNumber, points, made);
@@ -721,6 +776,10 @@ const UI = (() => {
                 }
             });
 
+            // Clear shot button selection after completing shot
+            const shotButtons = document.querySelectorAll('.shot-buttons-row .action-btn');
+            shotButtons.forEach(btn => btn.classList.remove('selected'));
+
             // Hide Draw Row and render normally
             this.hideDrawRow();
             this.render();
@@ -730,6 +789,10 @@ const UI = (() => {
          * Handle Cancel button
          */
         handleCancel() {
+            // Clear shot button selection when canceling
+            const shotButtons = document.querySelectorAll('.shot-buttons-row .action-btn');
+            shotButtons.forEach(btn => btn.classList.remove('selected'));
+
             this.hideDrawRow();
         },
 
@@ -748,12 +811,38 @@ const UI = (() => {
             ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
             ctx.fillRect(0, 0, width, height);
 
-            // Draw text
+            // Draw wrapped text
             ctx.font = 'bold 24px Arial';
             ctx.fillStyle = '#fff';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            ctx.fillText(text, width / 2, height / 2);
+
+            // Wrap text to fit canvas width with padding
+            const maxWidth = width * 0.9; // 90% of canvas width
+            const lineHeight = 30;
+            const words = text.split(' ');
+            const lines = [];
+            let currentLine = words[0];
+
+            for (let i = 1; i < words.length; i++) {
+                const testLine = currentLine + ' ' + words[i];
+                const metrics = ctx.measureText(testLine);
+                if (metrics.width > maxWidth) {
+                    lines.push(currentLine);
+                    currentLine = words[i];
+                } else {
+                    currentLine = testLine;
+                }
+            }
+            lines.push(currentLine);
+
+            // Draw each line centered vertically
+            const totalHeight = lines.length * lineHeight;
+            const startY = (height - totalHeight) / 2 + lineHeight / 2;
+
+            lines.forEach((line, index) => {
+                ctx.fillText(line, width / 2, startY + index * lineHeight);
+            });
 
             // Fade out after 2 seconds
             setTimeout(() => {

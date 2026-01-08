@@ -165,6 +165,12 @@ const CourtRenderer = (() => {
             ctx.closePath();
             ctx.stroke();
 
+            // Left free throw circle (6 feet radius)
+            const freeThrowCircleRadius = 6 * scale;
+            ctx.beginPath();
+            ctx.arc(freeThrowLineX, centerY, freeThrowCircleRadius, 0, Math.PI * 2);
+            ctx.stroke();
+
             // Right side
             const rightFreeThrowLineX = courtX + courtWidth - freeThrowLineDistanceFt * scale;
             const rightBasketX = courtX + courtWidth - basketDistanceFromBaseline * scale;
@@ -197,6 +203,11 @@ const CourtRenderer = (() => {
             ctx.lineTo(rightFreeThrowLineX, keyBottom);
             ctx.lineTo(courtX + courtWidth, keyBottom);
             ctx.closePath();
+            ctx.stroke();
+
+            // Right free throw circle (6 feet radius)
+            ctx.beginPath();
+            ctx.arc(rightFreeThrowLineX, centerY, freeThrowCircleRadius, 0, Math.PI * 2);
             ctx.stroke();
 
             // Baselines (black, emphasized) - draw last to be on top
