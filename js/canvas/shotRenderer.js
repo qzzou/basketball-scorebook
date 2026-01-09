@@ -52,16 +52,44 @@ const ShotRenderer = (() => {
     return {
         /**
          * Get court dimension constants for export
-         * @returns {Object} Court dimensions in feet
+         * Includes normalized corner coordinates relative to canvas
+         * @returns {Object} Court dimensions in feet and normalized corner positions
          */
         getCourtDimensions() {
+            // Get canvas to calculate actual court boundaries
+            const canvas = document.getElementById('shots-map-canvas');
+            let topLeft, bottomRight;
+
+            if (canvas) {
+                const canvasWidth = canvas.clientWidth;
+                const canvasHeight = canvas.clientHeight;
+                const boundaries = getCourtBoundaries(canvasWidth, canvasHeight);
+
+                topLeft = {
+                    x: Math.round(boundaries.courtStartX * 10000) / 10000,
+                    y: Math.round(boundaries.courtStartY * 10000) / 10000
+                };
+                bottomRight = {
+                    x: Math.round((boundaries.courtStartX + boundaries.courtSizeX) * 10000) / 10000,
+                    y: Math.round((boundaries.courtStartY + boundaries.courtSizeY) * 10000) / 10000
+                };
+            } else {
+                // Fallback: assume 3% padding on all sides
+                const padding = 0.03;
+                topLeft = { x: padding, y: padding };
+                bottomRight = { x: 1 - padding, y: 1 - padding };
+            }
+
             return {
                 courtLengthFt: COURT_LENGTH_FT,
                 courtWidthFt: COURT_WIDTH_FT,
                 basketDistanceFromBaselineFt: BASKET_DISTANCE_FROM_BASELINE_FT,
                 threePointRadiusFt: THREE_POINT_RADIUS_FT,
                 keyWidthFt: KEY_WIDTH_FT,
-                freeThrowLineDistanceFt: FREE_THROW_LINE_DISTANCE_FT
+                freeThrowLineDistanceFt: FREE_THROW_LINE_DISTANCE_FT,
+                // Normalized coordinates (0-1) relative to canvas
+                topLeftCorner: topLeft,
+                bottomRightCorner: bottomRight
             };
         },
 

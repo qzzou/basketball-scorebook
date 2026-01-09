@@ -122,7 +122,9 @@ const Storage = (() => {
                     basketDistanceFromBaselineFt: 4,
                     threePointRadiusFt: 22.146,
                     keyWidthFt: 12,
-                    freeThrowLineDistanceFt: 19
+                    freeThrowLineDistanceFt: 19,
+                    topLeftCorner: { x: 0.03, y: 0.03 },
+                    bottomRightCorner: { x: 0.97, y: 0.97 }
                 }
             };
 
