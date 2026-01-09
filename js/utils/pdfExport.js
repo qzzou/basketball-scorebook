@@ -19,12 +19,12 @@ const PDFExport = (() => {
                 return;
             }
 
-            // Filter players with stats
-            const playersWithStats = game.teamRoster.filter(jerseyNumber =>
-                this.hasPlayerStats(jerseyNumber, game.gameEvents)
+            // Filter players with shooting attempts
+            const playersWithShots = game.teamRoster.filter(jerseyNumber =>
+                this.hasPlayerShots(jerseyNumber, game.gameEvents)
             );
 
-            if (playersWithStats.length === 0) {
+            if (playersWithShots.length === 0) {
                 alert('No player statistics to export');
                 return;
             }
@@ -54,9 +54,9 @@ const PDFExport = (() => {
                 pdf.addPage();
                 await this.addTeamShotMapPage(pdf, game);
 
-                // Pages 3+: Individual Player Pages (only for players with stats)
-                for (let i = 0; i < playersWithStats.length; i++) {
-                    const jerseyNumber = playersWithStats[i];
+                // Pages 3+: Individual Player Pages (only for players with shooting attempts)
+                for (let i = 0; i < playersWithShots.length; i++) {
+                    const jerseyNumber = playersWithShots[i];
                     pdf.addPage();
                     await this.addPlayerPage(pdf, game, jerseyNumber, i + 2);
                 }
