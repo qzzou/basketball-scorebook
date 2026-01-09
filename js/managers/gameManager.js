@@ -345,7 +345,22 @@ const GameManager = (() => {
             reader.onload = (e) => {
                 const success = Storage.importGameFromJSON(e.target.result);
                 if (success) {
-                    EventBus.emit('game:imported');
+                    // Load the imported game (it was set as current by saveGame)
+                    const importedGameId = Storage.getCurrentGameId();
+                    const importedGame = Storage.loadGame(importedGameId);
+                    if (importedGame) {
+                        DataModel.setCurrentGame(importedGame);
+                        DataModel.resetAppState();
+                        DataModel.switchToEditMode();
+                        StatCalculator.updateStatsCache(
+                            importedGame.teamRoster,
+                            importedGame.gameEvents,
+                            importedGame.playerNames
+                        );
+                    }
+                    // Emit game:loaded so UI refreshes
+                    EventBus.emit('game:loaded', importedGame);
+                    alert(`Game "${importedGame?.gameName}" imported successfully!`);
                 }
             };
             reader.readAsText(file);
