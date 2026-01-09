@@ -932,14 +932,19 @@ const UI = (() => {
                 return;
             }
 
-            // Add shot event with location
+            // Convert to feet coordinates for export compatibility
+            const feetCoords = ShotRenderer.convertToFeet(pendingShot.normalizedX, pendingShot.normalizedY);
+
+            // Add shot event with location (both normalized and feet)
             EventManager.addEvent(jerseyNumber, 'shot', {
                 shotData: {
                     made: pendingShot.made,
                     shotType: pendingShot.shotType,
                     location: {
                         x: pendingShot.normalizedX,
-                        y: pendingShot.normalizedY
+                        y: pendingShot.normalizedY,
+                        x_ft: feetCoords.x_ft,
+                        y_ft: feetCoords.y_ft
                     }
                 }
             });

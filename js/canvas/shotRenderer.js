@@ -41,7 +41,77 @@ const ShotRenderer = (() => {
         };
     }
 
+    // Court dimensions constants (college basketball)
+    const COURT_LENGTH_FT = 94;
+    const COURT_WIDTH_FT = 50;
+    const BASKET_DISTANCE_FROM_BASELINE_FT = 4;
+    const THREE_POINT_RADIUS_FT = 22.146;
+    const KEY_WIDTH_FT = 12;
+    const FREE_THROW_LINE_DISTANCE_FT = 19;
+
     return {
+        /**
+         * Get court dimension constants for export
+         * @returns {Object} Court dimensions in feet
+         */
+        getCourtDimensions() {
+            return {
+                courtLengthFt: COURT_LENGTH_FT,
+                courtWidthFt: COURT_WIDTH_FT,
+                basketDistanceFromBaselineFt: BASKET_DISTANCE_FROM_BASELINE_FT,
+                threePointRadiusFt: THREE_POINT_RADIUS_FT,
+                keyWidthFt: KEY_WIDTH_FT,
+                freeThrowLineDistanceFt: FREE_THROW_LINE_DISTANCE_FT
+            };
+        },
+
+        /**
+         * Convert normalized canvas coordinates to court coordinates in feet
+         * Origin (0,0) is at top-left corner of court (where baseline meets sideline)
+         * X increases along the length (94ft), Y increases along the width (50ft)
+         * @param {number} normalizedX - X coordinate (0-1) relative to canvas
+         * @param {number} normalizedY - Y coordinate (0-1) relative to canvas
+         * @returns {Object} - {x_ft, y_ft} position in feet from top-left of court
+         */
+        convertToFeet(normalizedX, normalizedY) {
+            // Get canvas to calculate court boundaries
+            const canvas = document.getElementById('shots-map-canvas');
+            if (!canvas) {
+                // Fallback: assume court fills canvas with 3% padding
+                const paddingPercent = 0.03;
+                const courtStartX = paddingPercent;
+                const courtStartY = paddingPercent;
+                const courtSizeX = 1 - 2 * paddingPercent;
+                const courtSizeY = 1 - 2 * paddingPercent;
+
+                const courtX = (normalizedX - courtStartX) / courtSizeX;
+                const courtY = (normalizedY - courtStartY) / courtSizeY;
+
+                return {
+                    x_ft: Math.round(courtX * COURT_LENGTH_FT * 100) / 100,
+                    y_ft: Math.round(courtY * COURT_WIDTH_FT * 100) / 100
+                };
+            }
+
+            const canvasWidth = canvas.clientWidth;
+            const canvasHeight = canvas.clientHeight;
+            const boundaries = getCourtBoundaries(canvasWidth, canvasHeight);
+
+            // Convert normalized canvas coords to normalized court coords (0-1 within court)
+            const courtX = (normalizedX - boundaries.courtStartX) / boundaries.courtSizeX;
+            const courtY = (normalizedY - boundaries.courtStartY) / boundaries.courtSizeY;
+
+            // Convert to feet (clamp to court bounds)
+            const x_ft = Math.max(0, Math.min(COURT_LENGTH_FT, courtX * COURT_LENGTH_FT));
+            const y_ft = Math.max(0, Math.min(COURT_WIDTH_FT, courtY * COURT_WIDTH_FT));
+
+            // Round to 2 decimal places
+            return {
+                x_ft: Math.round(x_ft * 100) / 100,
+                y_ft: Math.round(y_ft * 100) / 100
+            };
+        },
+
         /**
          * Draw all shots on the canvas
          * @param {CanvasRenderingContext2D} ctx - Canvas context

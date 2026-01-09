@@ -37,6 +37,18 @@ const DataModel = (() => {
             const gameId = IDGenerator.generateGameId();
             const now = Date.now();
 
+            // Get court dimensions from ShotRenderer if available, otherwise use defaults
+            const courtDimensions = (typeof ShotRenderer !== 'undefined' && ShotRenderer.getCourtDimensions)
+                ? ShotRenderer.getCourtDimensions()
+                : {
+                    courtLengthFt: 94,
+                    courtWidthFt: 50,
+                    basketDistanceFromBaselineFt: 4,
+                    threePointRadiusFt: 22.146,
+                    keyWidthFt: 12,
+                    freeThrowLineDistanceFt: 19
+                };
+
             return {
                 gameId,
                 gameName: gameName || `Game ${new Date().toLocaleDateString()}`,
@@ -44,6 +56,7 @@ const DataModel = (() => {
                 teamRoster: roster,
                 playerNames: playerNames,
                 gameEvents: [],
+                courtDimensions: courtDimensions,
                 createdAt: now,
                 lastModified: now
             };

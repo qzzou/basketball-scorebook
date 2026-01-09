@@ -114,7 +114,16 @@ const Storage = (() => {
                 teamName: gameData.teamName,
                 totalPoints,
                 timestamp: gameData.createdAt,
-                lastModified: gameData.lastModified
+                lastModified: gameData.lastModified,
+                // Include court dimensions for export compatibility
+                courtDimensions: gameData.courtDimensions || {
+                    courtLengthFt: 94,
+                    courtWidthFt: 50,
+                    basketDistanceFromBaselineFt: 4,
+                    threePointRadiusFt: 22.146,
+                    keyWidthFt: 12,
+                    freeThrowLineDistanceFt: 19
+                }
             };
 
             if (existingIndex >= 0) {

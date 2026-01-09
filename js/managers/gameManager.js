@@ -130,6 +130,9 @@ const GameManager = (() => {
             // Set as current game
             DataModel.setCurrentGame(game);
 
+            // Save the loaded game to update currentGameId in localStorage
+            Storage.saveGame(game);
+
             // Reset app state
             DataModel.resetAppState();
 
