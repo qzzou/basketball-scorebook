@@ -17,14 +17,6 @@
         // Initialize UI
         UI.init();
 
-        // Listen for mode changes to update dropdown label
-        EventBus.on('mode:changed', (mode) => {
-            const modeLabel = document.getElementById('mode-label');
-            if (modeLabel) {
-                modeLabel.textContent = mode === 'edit' ? 'Editing' : 'View Only';
-            }
-        });
-
         console.log('Basketball Scorebook 2.0 - Ready!');
     });
 
@@ -42,51 +34,6 @@
         const redoBtn = document.getElementById('redo-btn');
         if (redoBtn) {
             redoBtn.onclick = () => EventManager.redoLastEvent();
-        }
-
-        // Select button (view mode)
-        const selectBtn = document.getElementById('select-btn');
-        if (selectBtn) {
-            selectBtn.onclick = () => UI.handleSelectToggle();
-        }
-
-        // Mode dropdown toggle
-        const modeBtn = document.getElementById('mode-btn');
-        const modeMenu = document.getElementById('mode-menu');
-        const modeLabel = document.getElementById('mode-label');
-
-        if (modeBtn && modeMenu) {
-            // Toggle dropdown on button click
-            modeBtn.onclick = (e) => {
-                e.stopPropagation();
-                modeMenu.classList.toggle('show');
-            };
-
-            // Close dropdown when clicking outside
-            document.addEventListener('click', () => {
-                modeMenu.classList.remove('show');
-            });
-
-            // Handle mode selection
-            const modeOptions = document.querySelectorAll('.mode-option');
-            modeOptions.forEach(option => {
-                option.onclick = () => {
-                    const mode = option.getAttribute('data-mode');
-                    const label = option.textContent;
-
-                    if (mode === 'edit') {
-                        GameManager.switchToEditMode();
-                    } else {
-                        GameManager.switchToViewMode();
-                    }
-
-                    if (modeLabel) {
-                        modeLabel.textContent = label;
-                    }
-
-                    modeMenu.classList.remove('show');
-                };
-            });
         }
 
         // Settings button

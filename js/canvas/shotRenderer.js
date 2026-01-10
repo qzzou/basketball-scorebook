@@ -151,8 +151,6 @@ const ShotRenderer = (() => {
             if (!game) return;
 
             const appState = DataModel.getAppState();
-            const mode = appState.currentMode;
-            const filterJerseys = mode === 'view' ? appState.selectedJerseys : null;
 
             // Get all shot events
             const shotEvents = game.gameEvents.filter(e =>
@@ -167,11 +165,6 @@ const ShotRenderer = (() => {
             const nonFTShots = [];
 
             shotEvents.forEach((shot) => {
-                // Filter by selected jerseys in view mode
-                if (filterJerseys && !filterJerseys.includes(shot.playerNumber)) {
-                    return;
-                }
-
                 if (shot.shotData.shotType === 'FT') {
                     ftShots.push(shot);
                 } else {

@@ -14,7 +14,7 @@ const GameManager = (() => {
             if (lastGameId) {
                 const game = Storage.loadGame(lastGameId);
                 if (game) {
-                    this.loadGameInEditMode(lastGameId);
+                    this.loadGame(lastGameId);
                     console.log('Loaded last game:', game.gameName);
                     return;
                 }
@@ -58,9 +58,8 @@ const GameManager = (() => {
             // Clear stats cache
             DataModel.clearPlayerStatsCache();
 
-            // Reset app state and set to edit mode
+            // Reset app state
             DataModel.resetAppState();
-            DataModel.switchToEditMode();
 
             // Save new game
             Storage.saveGame(newGame);
@@ -72,45 +71,7 @@ const GameManager = (() => {
         },
 
         /**
-         * Load an existing game (for page initialization - loads in edit mode)
-         * @param {string} gameId - Game ID to load
-         */
-        loadGameInEditMode(gameId) {
-            // Save current game first
-            const currentGame = DataModel.getCurrentGame();
-            if (currentGame) {
-                Storage.saveGame(currentGame);
-            }
-
-            // Load game
-            const game = Storage.loadGame(gameId);
-            if (!game) {
-                console.error('Game not found:', gameId);
-                return false;
-            }
-
-            // Set as current game
-            DataModel.setCurrentGame(game);
-
-            // Reset app state and set to edit mode
-            DataModel.resetAppState();
-            DataModel.switchToEditMode();
-
-            // Update stats cache
-            StatCalculator.updateStatsCache(
-                game.teamRoster,
-                game.gameEvents,
-                game.playerNames
-            );
-
-            // Emit event
-            EventBus.emit('game:loaded', game);
-
-            return true;
-        },
-
-        /**
-         * Load an existing game (switches to view mode)
+         * Load an existing game
          * @param {string} gameId - Game ID to load
          */
         loadGame(gameId) {
@@ -135,9 +96,6 @@ const GameManager = (() => {
 
             // Reset app state
             DataModel.resetAppState();
-
-            // Switch to view mode
-            this.switchToViewMode();
 
             // Update stats cache
             StatCalculator.updateStatsCache(
@@ -173,9 +131,8 @@ const GameManager = (() => {
                 game.playerNames
             );
 
-            // Reset app state and switch to edit mode
+            // Reset app state
             DataModel.resetAppState();
-            DataModel.switchToEditMode();
 
             // Hide Draw Row if visible
             const drawRow = document.getElementById('draw-row');
@@ -290,43 +247,6 @@ const GameManager = (() => {
         },
 
         /**
-         * Switch to edit mode
-         */
-        switchToEditMode() {
-            DataModel.switchToEditMode();
-            EventBus.emit('mode:changed', 'edit');
-        },
-
-        /**
-         * Switch to view mode
-         */
-        switchToViewMode() {
-            // Hide Draw Row if visible
-            const drawRow = document.getElementById('draw-row');
-            if (drawRow) {
-                drawRow.style.display = 'none';
-            }
-
-            // Hide tap-text and retap-text overlays
-            const tapText = document.getElementById('tap-text');
-            if (tapText) {
-                tapText.style.display = 'none';
-            }
-            const retapText = document.getElementById('retap-text');
-            if (retapText) {
-                retapText.style.display = 'none';
-            }
-
-            // Clear pending shot state
-            const appState = DataModel.getAppState();
-            appState.selectedShotType = null;
-            appState.pendingShot = null;
-
-            DataModel.switchToViewMode();
-            EventBus.emit('mode:changed', 'view');
-        },
-
-        /**
          * Export current game as JSON
          */
         exportCurrentGame() {
@@ -351,7 +271,6 @@ const GameManager = (() => {
                     if (importedGame) {
                         DataModel.setCurrentGame(importedGame);
                         DataModel.resetAppState();
-                        DataModel.switchToEditMode();
                         StatCalculator.updateStatsCache(
                             importedGame.teamRoster,
                             importedGame.gameEvents,

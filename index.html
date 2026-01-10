@@ -12,7 +12,10 @@
 <body>
     <!-- Header -->
     <header class="app-header">
-        <h1 id="game-name">Basketball Scorebook</h1>
+        <div class="header-titles">
+            <div id="team-name" class="team-name-header">Team Name - 0 pts</div>
+            <h1 id="game-name">Basketball Scorebook</h1>
+        </div>
         <div class="header-buttons">
             <button id="settings-btn" class="icon-btn" title="Settings">
                 <i data-lucide="settings"></i>
@@ -35,19 +38,6 @@
                     <button id="redo-btn" class="text-btn" title="Redo">
                         Redo
                     </button>
-                    <button id="select-btn" class="icon-btn" title="Select All / Clear All" style="display: none;">
-                        <i data-lucide="users"></i>
-                    </button>
-                    <div class="mode-dropdown">
-                        <button id="mode-btn" class="mode-dropdown-btn">
-                            <span id="mode-label">Editing</span>
-                            <i data-lucide="chevron-down" style="width: 16px; height: 16px; margin-left: 4px;"></i>
-                        </button>
-                        <div id="mode-menu" class="mode-dropdown-menu">
-                            <button class="mode-option" data-mode="edit">Editing</button>
-                            <button class="mode-option" data-mode="view">View Only</button>
-                        </div>
-                    </div>
                 </div>
             </div>
 

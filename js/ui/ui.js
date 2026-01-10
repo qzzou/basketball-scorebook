@@ -47,7 +47,6 @@ const UI = (() => {
             EventBus.on('event:undone', () => this.render());
             EventBus.on('event:redone', () => this.render());
             EventBus.on('stats:updated', () => this.renderStats());
-            EventBus.on('mode:changed', () => this.render());
         },
 
         /**
@@ -68,9 +67,23 @@ const UI = (() => {
             const game = DataModel.getCurrentGame();
             if (!game) return;
 
-            const header = document.getElementById('game-name');
-            if (header) {
-                header.textContent = game.gameName;
+            // Calculate total points from all players
+            const teamStats = StatCalculator.calculateCombinedStats(
+                game.teamRoster,
+                game.gameEvents
+            );
+            const totalPoints = teamStats.PTS || 0;
+
+            // Update team name with points
+            const teamNameEl = document.getElementById('team-name');
+            if (teamNameEl) {
+                teamNameEl.textContent = `${game.teamName} - ${totalPoints} pts`;
+            }
+
+            // Update game name
+            const gameNameEl = document.getElementById('game-name');
+            if (gameNameEl) {
+                gameNameEl.textContent = game.gameName;
             }
         },
 
@@ -85,62 +98,25 @@ const UI = (() => {
             // Render jersey buttons
             this.renderJerseyRow();
 
-            // Render stat row based on mode
-            if (appState.currentMode === 'edit') {
-                if (appState.selectedJersey !== null) {
-                    this.renderStatRow(appState.selectedJersey);
-                    // Show guide-text in edit mode when player is selected
-                    this.showGuideText();
-                } else {
-                    const game = DataModel.getCurrentGame();
-                    const helpText = game.teamRoster.length === 0 ? 'Add a player above to begin' : 'Select a player above to begin';
-                    document.getElementById('stat-row').innerHTML = `<p>${helpText}</p>`;
-                    // Clear stat buttons when no player selected
-                    this.renderStatButtons();
-                    // Hide guide-text when no player selected
-                    this.hideGuideText();
-                }
+            // Render stat row based on selected player
+            if (appState.selectedJersey !== null) {
+                this.renderStatRow(appState.selectedJersey);
+                this.showGuideText();
             } else {
-                // View mode - show combined stats
-                this.renderViewModeStats();
-                // Clear stat buttons in view mode
+                const helpText = game.teamRoster.length === 0 ? 'Add a player above to begin' : 'Select a player above to begin';
+                document.getElementById('stat-row').innerHTML = `<p>${helpText}</p>`;
                 this.renderStatButtons();
-                // Hide guide-text in view mode
                 this.hideGuideText();
             }
 
-            // Update undo/redo buttons - hide in view mode, enable/disable in edit mode
+            // Update undo/redo buttons
             const undoBtn = document.getElementById('undo-btn');
             const redoBtn = document.getElementById('redo-btn');
-            if (appState.currentMode === 'view') {
-                if (undoBtn) undoBtn.style.display = 'none';
-                if (redoBtn) redoBtn.style.display = 'none';
-            } else {
-                if (undoBtn) {
-                    undoBtn.style.display = 'inline-flex';
-                    undoBtn.disabled = !EventManager.canUndo();
-                }
-                if (redoBtn) {
-                    redoBtn.style.display = 'inline-flex';
-                    redoBtn.disabled = !EventManager.canRedo();
-                }
+            if (undoBtn) {
+                undoBtn.disabled = !EventManager.canUndo();
             }
-
-            // Hide the original select button (now in jersey row in view mode)
-            const selectBtn = document.getElementById('select-btn');
-            if (selectBtn) {
-                selectBtn.style.display = 'none';
-            }
-
-            // Update Edit/View mode button visual states
-            const editBtn = document.getElementById('edit-btn');
-            const viewBtn = document.getElementById('view-btn');
-            if (appState.currentMode === 'edit') {
-                if (editBtn) editBtn.classList.add('active');
-                if (viewBtn) viewBtn.classList.remove('active');
-            } else {
-                if (viewBtn) viewBtn.classList.add('active');
-                if (editBtn) editBtn.classList.remove('active');
+            if (redoBtn) {
+                redoBtn.disabled = !EventManager.canRedo();
             }
         },
 
@@ -178,41 +154,20 @@ const UI = (() => {
                 btn.textContent = jerseyNumber;
                 btn.className = 'jersey-btn';
 
-                // Edit mode - single selection
-                if (appState.currentMode === 'edit') {
-                    if (appState.selectedJersey === jerseyNumber) {
-                        btn.classList.add('selected');
-                    }
-                    btn.onclick = () => this.handleJerseyClick(jerseyNumber);
+                if (appState.selectedJersey === jerseyNumber) {
+                    btn.classList.add('selected');
                 }
-                // View mode - multiple selection
-                else {
-                    if (appState.selectedJerseys.includes(jerseyNumber)) {
-                        btn.classList.add('selected');
-                    }
-                    btn.onclick = () => this.handleJerseyToggle(jerseyNumber);
-                }
+                btn.onclick = () => this.handleJerseyClick(jerseyNumber);
 
                 container.appendChild(btn);
             });
 
-            // Add mode-specific button after all players
-            if (appState.currentMode === 'edit') {
-                // Add "Modify" button in edit mode
-                const modifyBtn = document.createElement('button');
-                modifyBtn.className = 'jersey-btn modify-player-btn';
-                modifyBtn.innerHTML = '<i data-lucide="user-round-pen"></i>';
-                modifyBtn.onclick = () => SettingsUI.show();
-                container.appendChild(modifyBtn);
-            } else {
-                // Add "Select" button in view mode with dashed outline
-                const selectBtn = document.createElement('button');
-                selectBtn.className = 'jersey-btn select-all-btn';
-                selectBtn.id = 'select-btn-jersey-row';
-                selectBtn.innerHTML = '<i data-lucide="square-stack"></i>';
-                selectBtn.onclick = () => this.handleSelectToggle();
-                container.appendChild(selectBtn);
-            }
+            // Add "Modify" button after all players
+            const modifyBtn = document.createElement('button');
+            modifyBtn.className = 'jersey-btn modify-player-btn';
+            modifyBtn.innerHTML = '<i data-lucide="user-round-pen"></i>';
+            modifyBtn.onclick = () => SettingsUI.show();
+            container.appendChild(modifyBtn);
 
             // Initialize Lucide icons
             if (window.lucide) {
@@ -221,7 +176,7 @@ const UI = (() => {
         },
 
         /**
-         * Handle jersey click (edit mode)
+         * Handle jersey click
          */
         handleJerseyClick(jerseyNumber) {
             haptic('light');
@@ -233,15 +188,12 @@ const UI = (() => {
             } else {
                 appState.selectedJersey = jerseyNumber;
 
-                // Auto-scroll to jersey row when selecting a player in edit mode
-                if (appState.currentMode === 'edit') {
-                    const jerseyRow = document.getElementById('jersey-row');
-                    if (jerseyRow) {
-                        // Scroll to position with offset for white space above
-                        const yOffset = -16; // 16px white space above
-                        const y = jerseyRow.getBoundingClientRect().top + window.pageYOffset + yOffset;
-                        window.scrollTo({ top: y, behavior: 'smooth' });
-                    }
+                // Auto-scroll to jersey row when selecting a player
+                const jerseyRow = document.getElementById('jersey-row');
+                if (jerseyRow) {
+                    const yOffset = -16;
+                    const y = jerseyRow.getBoundingClientRect().top + window.pageYOffset + yOffset;
+                    window.scrollTo({ top: y, behavior: 'smooth' });
                 }
             }
 
@@ -250,116 +202,6 @@ const UI = (() => {
             shotButtons.forEach(btn => btn.classList.remove('selected'));
 
             this.render();
-        },
-
-        /**
-         * Handle jersey toggle (view mode)
-         */
-        handleJerseyToggle(jerseyNumber) {
-            haptic('light');
-            const appState = DataModel.getAppState();
-            const index = appState.selectedJerseys.indexOf(jerseyNumber);
-
-            if (index >= 0) {
-                appState.selectedJerseys.splice(index, 1);
-            } else {
-                appState.selectedJerseys.push(jerseyNumber);
-            }
-
-            this.render();
-        },
-
-        /**
-         * Handle select all/clear all in view mode
-         */
-        handleSelectToggle() {
-            haptic('light');
-            const game = DataModel.getCurrentGame();
-            const appState = DataModel.getAppState();
-
-            if (appState.selectedJerseys.length === game.teamRoster.length) {
-                // Clear all
-                appState.selectedJerseys = [];
-            } else {
-                // Select all
-                appState.selectedJerseys = [...game.teamRoster];
-            }
-
-            this.render();
-        },
-
-        /**
-         * Render view mode stats (combined for selected players)
-         */
-        renderViewModeStats() {
-            const game = DataModel.getCurrentGame();
-            const appState = DataModel.getAppState();
-            const container = document.getElementById('stat-row');
-            if (!container) return;
-
-            if (appState.selectedJerseys.length === 0) {
-                container.innerHTML = '<p>No players selected. Click jerseys to filter.</p>';
-                return;
-            }
-
-            // Calculate combined stats
-            const stats = StatCalculator.calculateCombinedStats(
-                appState.selectedJerseys,
-                game.gameEvents
-            );
-
-            const playerCount = appState.selectedJerseys.length;
-            let title;
-            if (playerCount === game.teamRoster.length) {
-                title = 'All Players';
-            } else if (playerCount === 1) {
-                const jerseyNumber = appState.selectedJerseys[0];
-                const playerName = game.playerNames[jerseyNumber] || 'Player';
-                title = `#${jerseyNumber} ${playerName}`;
-            } else {
-                title = `${playerCount} Players Selected`;
-            }
-
-            // Build stats HTML - always show PTS, only include other non-zero values
-            let statsHtml = '';
-
-            // Always show PTS
-            statsHtml += `<div class="stat"><div class="value">${stats.PTS || 0}</div><div class="label">PTS</div></div>`;
-
-            if (stats.FOULS?.total > 0) {
-                statsHtml += `<div class="stat"><div class="value">${stats.FOULS.total}</div><div class="label">FLS</div></div>`;
-            }
-            if (stats.FT?.attempts > 0) {
-                statsHtml += `<div class="stat"><div class="value">${Formatters.formatFT(stats.FT)}</div><div class="label">FT</div></div>`;
-            }
-            if (stats.FG?.attempts > 0) {
-                statsHtml += `<div class="stat"><div class="value">${Formatters.formatFG(stats.FG)}</div><div class="label">FG</div></div>`;
-            }
-            if (stats['3PT']?.attempts > 0) {
-                statsHtml += `<div class="stat"><div class="value">${Formatters.format3PT(stats['3PT'])}</div><div class="label">3PT</div></div>`;
-            }
-            if (stats.REB > 0) {
-                statsHtml += `<div class="stat"><div class="value">${stats.REB}</div><div class="label">REB</div></div>`;
-            }
-            if (stats.AST > 0) {
-                statsHtml += `<div class="stat"><div class="value">${stats.AST}</div><div class="label">AST</div></div>`;
-            }
-            if (stats.STL > 0) {
-                statsHtml += `<div class="stat"><div class="value">${stats.STL}</div><div class="label">STL</div></div>`;
-            }
-            if (stats.BLK > 0) {
-                statsHtml += `<div class="stat"><div class="value">${stats.BLK}</div><div class="label">BLK</div></div>`;
-            }
-            if (stats.TO > 0) {
-                statsHtml += `<div class="stat"><div class="value">${stats.TO}</div><div class="label">TO</div></div>`;
-            }
-
-            container.innerHTML = `
-                <div class="player-name-header">${title}</div>
-                <div class="stats-display">
-                    ${statsHtml}
-                </div>
-            `;
         },
 
         /**
@@ -416,6 +258,15 @@ const UI = (() => {
                     ${statsHtml}
                 </div>
                 <div class="action-buttons-container">
+                    <div class="stat-buttons-row">
+                        <button onclick="UI.handleStatButton('REB')" class="action-btn stat-btn">+REB</button>
+                        <button onclick="UI.handleStatButton('AST')" class="action-btn stat-btn">+AST</button>
+                        <button onclick="UI.handleStatButton('STL')" class="action-btn stat-btn">+STL</button>
+                        <button onclick="UI.handleStatButton('BLK')" class="action-btn stat-btn">+BLK</button>
+                        <button onclick="UI.handleStatButton('TO')" class="action-btn stat-btn to-btn">+TO</button>
+                        <button onclick="UI.handleFoulButton('FOUL')" class="action-btn stat-btn foul-btn">+FOUL</button>
+                        <button onclick="UI.handleFoulButton('TECH')" class="action-btn stat-btn tech-btn">+TECH</button>
+                    </div>
                     <div class="shot-buttons-row">
                         <button onclick="UI.handleShotButton(1, true)" class="action-btn shot-made" data-shot="FT-made">
                             +1 <svg width="10" height="10" style="margin-left: 4px; vertical-align: middle;"><circle cx="5" cy="5" r="4" fill="#000"/></svg>
@@ -439,35 +290,17 @@ const UI = (() => {
                 </div>
             `;
 
-            // Render stat buttons below court
+            // Clear stat buttons section (now rendered inline above)
             this.renderStatButtons();
         },
 
         /**
-         * Render stat buttons below court canvas
+         * Clear stat buttons section (stat buttons are now rendered inline in stat row)
          */
         renderStatButtons() {
-            const appState = DataModel.getAppState();
             const container = document.getElementById('shot-buttons-section');
             if (!container) return;
-
-            // Only show stat buttons in edit mode when a player is selected
-            if (appState.currentMode !== 'edit' || appState.selectedJersey === null) {
-                container.innerHTML = '';
-                return;
-            }
-
-            container.innerHTML = `
-                <div class="stat-buttons-row">
-                    <button onclick="UI.handleStatButton('REB')" class="action-btn stat-btn">+REB</button>
-                    <button onclick="UI.handleStatButton('AST')" class="action-btn stat-btn">+AST</button>
-                    <button onclick="UI.handleStatButton('STL')" class="action-btn stat-btn">+STL</button>
-                    <button onclick="UI.handleStatButton('BLK')" class="action-btn stat-btn">+BLK</button>
-                    <button onclick="UI.handleStatButton('TO')" class="action-btn stat-btn to-btn">+TO</button>
-                    <button onclick="UI.handleFoulButton('FOUL')" class="action-btn stat-btn foul-btn">+FOUL</button>
-                    <button onclick="UI.handleFoulButton('TECH')" class="action-btn stat-btn tech-btn">+TECH</button>
-                </div>
-            `;
+            container.innerHTML = '';
         },
 
         /**
@@ -866,7 +699,7 @@ const UI = (() => {
         showGuideText() {
             const guideText = document.getElementById('guide-text');
             if (guideText) {
-                guideText.textContent = 'tap a shot button above and then tap on court, or tap a stat button below';
+                guideText.textContent = 'tap a stat button or shot button above, then tap on court for shots';
                 guideText.style.display = 'block';
             }
         },

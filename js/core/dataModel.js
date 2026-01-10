@@ -4,15 +4,11 @@ const DataModel = (() => {
     // Application state
     const appState = {
         currentGameId: null,
-        currentMode: "edit", // "edit" or "view"
         currentView: "main", // "main", "settings", "help", "gameHistory", "actionCorrection"
 
-        // Edit mode state
+        // Selection state
         selectedJersey: null,
         selectedShotType: null, // "+1", "+2", "+3", "miss1", "miss2", "miss3"
-
-        // View mode state
-        selectedJerseys: [], // Array of jersey numbers
 
         // Action correction state
         correctionEventIndex: null
@@ -180,36 +176,13 @@ const DataModel = (() => {
         },
 
         /**
-         * Reset application state (for mode switching)
+         * Reset application state
          */
         resetAppState() {
             appState.selectedJersey = null;
             appState.selectedShotType = null;
-            appState.selectedJerseys = [];
             appState.correctionEventIndex = null;
             appState.pendingShot = null;
-        },
-
-        /**
-         * Switch to edit mode
-         */
-        switchToEditMode() {
-            appState.currentMode = "edit";
-            appState.selectedJersey = null;
-            appState.selectedShotType = null;
-            appState.selectedJerseys = [];
-        },
-
-        /**
-         * Switch to view mode (select all jerseys by default)
-         */
-        switchToViewMode() {
-            appState.currentMode = "view";
-            appState.selectedJersey = null;
-            appState.selectedShotType = null;
-            if (currentGame) {
-                appState.selectedJerseys = [...currentGame.teamRoster];
-            }
         }
     };
 })();
