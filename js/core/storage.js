@@ -8,9 +8,15 @@ const Storage = (() => {
     let autoSaveEnabled = true;
 
     // Default hot buttons (independent counters, not tied to game events)
+    // mode: 'single' for count only, 'dual' for made/attempts
     const DEFAULT_HOT_BUTTONS = [
-        { id: 'hb_1', label: 'Team REB', count: 0 },
-        { id: 'hb_2', label: 'Team AST', count: 0 }
+        { id: 'hb_1', label: 'Off REB', count: 0, mode: 'single' },
+        { id: 'hb_2', label: 'Def REB', count: 0, mode: 'single' },
+        { id: 'hb_3', label: 'Assists', count: 0, mode: 'single' },
+        { id: 'hb_4', label: 'Catch high shoot high', count: 0, mode: 'single' },
+        { id: 'hb_5', label: 'Free Throw', made: 0, attempts: 0, mode: 'dual' },
+        { id: 'hb_6', label: 'Lookup for open players!', count: 0, mode: 'single' },
+        { id: 'hb_7', label: '3pt', made: 0, attempts: 0, mode: 'dual' }
     ];
 
     return {

@@ -178,7 +178,7 @@ button:disabled {
     gap: 0.5rem;
     flex-wrap: nowrap;
     overflow-x: auto;
-    margin-bottom: 1rem;
+    margin-bottom: 0.25rem;
 }
 
 .jersey-btn {
@@ -339,8 +339,8 @@ button:disabled {
 .stat-row {
     display: flex;
     flex-direction: column;
-    gap: 1rem;
-    margin-bottom: 1rem;
+    gap: 0.25rem;
+    margin-bottom: 0.5rem;
 }
 
 .foul-buttons {
@@ -378,7 +378,7 @@ button:disabled {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 0.25rem;
+    margin-bottom: 0;
 }
 
 .player-name-header {
@@ -404,6 +404,7 @@ button:disabled {
     overflow-x: auto;
     min-height: 2.5rem; /* Reserve space for stats even when empty */
     justify-content: flex-start;
+    margin-bottom: 0;
 }
 
 .stat {
@@ -1324,18 +1325,45 @@ button:disabled {
 }
 
 /* Draw Row */
-/* Guide Text (above court) */
+/* Guide Text (above court) - always reserves space */
 .guide-text {
-    margin-bottom: 0.5rem;
+    margin-bottom: 0;
     font-size: 0.9rem;
     color: #666;
     text-align: center;
     font-style: italic;
-    height: 2.6em; /* Fixed height for 2 lines (0.9rem * 1.4 line-height * 2 rows + small buffer) */
+    height: 1.6em; /* Fixed single row height - always reserved */
+    min-height: 1.6em;
     line-height: 1.4;
     display: flex;
     align-items: center;
     justify-content: center;
+    border-radius: 6px;
+    padding: 0 0.5rem;
+    transition: background-color 0.2s ease;
+    visibility: visible;
+}
+
+.guide-text.hidden {
+    visibility: hidden;
+}
+
+.guide-text.highlight-tap {
+    background-color: #ffb74d; /* Solid amber/orange alert */
+    color: #000; /* Black text for contrast */
+    overflow-x: auto;
+    overflow-y: hidden;
+    white-space: nowrap;
+    justify-content: flex-start; /* Left align for scrolling */
+    -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+}
+
+/* Help text inline (same style as guide-text but left-aligned in stat-row) */
+.help-text-inline {
+    margin: 0;
+    font-size: 0.9rem;
+    color: #666;
+    font-style: italic;
 }
 
 /* Court Container with relative positioning for overlays */

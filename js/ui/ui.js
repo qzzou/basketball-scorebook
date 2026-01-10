@@ -95,6 +95,11 @@ const UI = (() => {
             const appState = DataModel.getAppState();
             if (!game) return;
 
+            // Auto-select first player if none selected and roster has players
+            if (appState.selectedJersey === null && game.teamRoster.length > 0) {
+                appState.selectedJersey = game.teamRoster[0];
+            }
+
             // Render jersey buttons
             this.renderJerseyRow();
 
@@ -103,10 +108,10 @@ const UI = (() => {
                 this.renderStatRow(appState.selectedJersey);
                 this.showGuideText();
             } else {
-                const helpText = game.teamRoster.length === 0 ? 'Add a player above to begin' : 'Select a player above to begin';
+                // No players in roster
                 document.getElementById('stat-row').innerHTML = `
                     <div class="player-name-row">
-                        <p style="margin: 0;">${helpText}</p>
+                        <p class="help-text-inline">add a player above to begin</p>
                         <div class="undo-redo-buttons">
                             <button id="undo-btn" class="text-btn" title="Undo" onclick="EventManager.undoLastEvent()">Undo</button>
                             <button id="redo-btn" class="text-btn" title="Redo" onclick="EventManager.redoLastEvent()">Redo</button>
@@ -114,13 +119,7 @@ const UI = (() => {
                     </div>
                 `;
                 this.renderStatButtons();
-                // Check for unplaced shots even when no player selected
-                const unplacedShots = this.getUnplacedShots();
-                if (unplacedShots.length > 0) {
-                    this.updateGuideTextForUnplacedShots();
-                } else {
-                    this.hideGuideText();
-                }
+                this.hideGuideText();
             }
 
             // Update undo/redo buttons
@@ -224,25 +223,26 @@ const UI = (() => {
         },
 
         /**
-         * Handle jersey click
+         * Handle jersey click - always select, never deselect by toggle
          */
         handleJerseyClick(jerseyNumber) {
             haptic('light');
             const appState = DataModel.getAppState();
 
-            // Toggle selection - allow deselecting
+            // If already selected, do nothing (can't deselect by toggle)
             if (appState.selectedJersey === jerseyNumber) {
-                appState.selectedJersey = null;
-            } else {
-                appState.selectedJersey = jerseyNumber;
+                return;
+            }
 
-                // Auto-scroll to jersey row when selecting a player
-                const jerseyRow = document.getElementById('jersey-row');
-                if (jerseyRow) {
-                    const yOffset = -16;
-                    const y = jerseyRow.getBoundingClientRect().top + window.pageYOffset + yOffset;
-                    window.scrollTo({ top: y, behavior: 'smooth' });
-                }
+            // Select the player
+            appState.selectedJersey = jerseyNumber;
+
+            // Auto-scroll to jersey row when selecting a player
+            const jerseyRow = document.getElementById('jersey-row');
+            if (jerseyRow) {
+                const yOffset = -16;
+                const y = jerseyRow.getBoundingClientRect().top + window.pageYOffset + yOffset;
+                window.scrollTo({ top: y, behavior: 'smooth' });
             }
 
             // Clear shot button selection when switching players
@@ -736,7 +736,7 @@ const UI = (() => {
             // Show guide-text above court
             const guideText = document.getElementById('guide-text');
             guideText.textContent = `#${jerseyNumber} ${playerName} ${result} a ${shotName}, tap / retap on court`;
-            guideText.style.display = 'block';
+            guideText.classList.remove('hidden');
 
             // Show tap-text overlay on court
             const tapText = document.getElementById('tap-text');
@@ -824,20 +824,19 @@ const UI = (() => {
                 return;
             }
 
-            const guideText = document.getElementById('guide-text');
-            if (guideText) {
-                guideText.textContent = 'tap a stat button or shot button above';
-                guideText.style.display = 'block';
-            }
+            // No unplaced shots - hide guide text
+            this.hideGuideText();
         },
 
         /**
-         * Hide guide text
+         * Hide guide text (keeps space reserved)
          */
         hideGuideText() {
             const guideText = document.getElementById('guide-text');
             if (guideText) {
-                guideText.style.display = 'none';
+                guideText.classList.add('hidden');
+                guideText.classList.remove('highlight-tap');
+                guideText.textContent = '';
             }
         },
 
@@ -874,11 +873,12 @@ const UI = (() => {
                 const shotTypeText = shot.shotData.shotType;
 
                 if (unplacedShots.length === 1) {
-                    guideText.textContent = `Tap court to place ${playerName} ${madeText} ${shotTypeText}`;
+                    guideText.textContent = `Long press on court to place ${playerName} ${madeText} ${shotTypeText}`;
                 } else {
-                    guideText.textContent = `Tap court to place ${playerName} ${madeText} ${shotTypeText} (${unplacedShots.length} unplaced)`;
+                    guideText.textContent = `Long press on court to place ${playerName} ${madeText} ${shotTypeText} (${unplacedShots.length} unplaced)`;
                 }
-                guideText.style.display = 'block';
+                guideText.classList.remove('hidden');
+                guideText.classList.add('highlight-tap');
             } else {
                 // No unplaced shots, show default guide text
                 this.showGuideText();
@@ -924,11 +924,37 @@ const UI = (() => {
                 }
             });
 
-            // Re-render canvas
+            // Start animation for the placed shot
+            ShotRenderer.animateShot(shot.eventIndex);
+
+            // Re-render canvas and start animation loop
             this.renderCanvas();
+            this.startShotAnimationLoop();
 
             // Update guide text for remaining unplaced shots
             this.updateGuideTextForUnplacedShots();
+        },
+
+        /**
+         * Start animation loop for shot effects
+         */
+        startShotAnimationLoop() {
+            // Cancel existing animation frame if any
+            if (this.shotAnimationFrame) {
+                cancelAnimationFrame(this.shotAnimationFrame);
+            }
+
+            const animate = () => {
+                // Check if there are still animating shots
+                if (ShotRenderer.hasAnimatingShots()) {
+                    this.renderCanvas();
+                    this.shotAnimationFrame = requestAnimationFrame(animate);
+                } else {
+                    this.shotAnimationFrame = null;
+                }
+            };
+
+            this.shotAnimationFrame = requestAnimationFrame(animate);
         },
 
         /**

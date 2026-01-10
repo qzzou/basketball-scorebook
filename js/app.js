@@ -163,6 +163,12 @@
                 <button class="btn-secondary" style="width: 100%; margin-top: 1rem;" onclick="HotButtonsUI.resetAllCounters()">
                     Reset All Counters
                 </button>
+                <button class="btn-secondary" style="width: 100%; margin-top: 0.5rem;" onclick="HotButtonsUI.removeAllButtons()">
+                    Remove All
+                </button>
+                <button class="btn-secondary" style="width: 100%; margin-top: 0.5rem;" onclick="HotButtonsUI.loadDefaultButtons()">
+                    Load Default
+                </button>
             </div>
         `;
 

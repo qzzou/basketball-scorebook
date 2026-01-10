@@ -1,6 +1,9 @@
 // Shot Renderer - Draw shot markers on court canvas
 
 const ShotRenderer = (() => {
+    // Track the most recently placed shot for animation (only one at a time)
+    let animatedShot = null; // {eventIndex, startTime} or null
+    const ANIMATION_DURATION = 5000; // 5 seconds
     /**
      * Get court boundaries in normalized coordinates
      * This matches the court rendering logic to ensure coordinates align
@@ -49,7 +52,60 @@ const ShotRenderer = (() => {
     const KEY_WIDTH_FT = 12;
     const FREE_THROW_LINE_DISTANCE_FT = 19;
 
+    /**
+     * Start animation for a newly placed shot (replaces any existing animation)
+     * @param {number} eventIndex - Event index of the shot
+     */
+    function startShotAnimation(eventIndex) {
+        // Replace any existing animation with this new one
+        animatedShot = {
+            eventIndex: eventIndex,
+            startTime: Date.now()
+        };
+    }
+
+    /**
+     * Get animation progress for a shot (0-1, or null if not animating)
+     * @param {number} eventIndex - Event index of the shot
+     * @returns {number|null} Progress 0-1, or null if not animating
+     */
+    function getAnimationProgress(eventIndex) {
+        // Only the most recent shot gets animation
+        if (!animatedShot || animatedShot.eventIndex !== eventIndex) return null;
+
+        const elapsed = Date.now() - animatedShot.startTime;
+        if (elapsed >= ANIMATION_DURATION) {
+            // Animation complete, clear it
+            animatedShot = null;
+            return null;
+        }
+
+        return elapsed / ANIMATION_DURATION;
+    }
+
     return {
+        /**
+         * Mark a shot as newly placed (starts animation)
+         * @param {number} eventIndex - Event index of the shot
+         */
+        animateShot(eventIndex) {
+            startShotAnimation(eventIndex);
+        },
+
+        /**
+         * Check if the most recent shot is currently animating
+         * @returns {boolean}
+         */
+        hasAnimatingShots() {
+            if (!animatedShot) return false;
+            const elapsed = Date.now() - animatedShot.startTime;
+            if (elapsed >= ANIMATION_DURATION) {
+                animatedShot = null;
+                return false;
+            }
+            return true;
+        },
+
         /**
          * Get court dimension constants for export
          * Includes normalized corner coordinates relative to canvas
@@ -183,14 +239,51 @@ const ShotRenderer = (() => {
             const baseRadius = 5;
 
             nonFTShots.forEach((shot) => {
-                const x = shot.shotData.location.x * canvasWidth;
-                const y = shot.shotData.location.y * canvasHeight;
+                let x = shot.shotData.location.x * canvasWidth;
+                let y = shot.shotData.location.y * canvasHeight;
 
                 let radius = baseRadius;
                 let color = shot.shotData.made ? '#4CAF50' : '#f44336';
 
                 if (shot.shotData.shotType === '3PT') {
                     color = shot.shotData.made ? '#2196F3' : '#f44336';
+                }
+
+                // Check for animation
+                const animProgress = getAnimationProgress(shot.eventIndex);
+                if (animProgress !== null) {
+                    // Animation effects: glow, shake, size pulse
+                    // Progress goes from 0 to 1 over 5 seconds
+
+                    // Size pulse: starts big (2x), settles to 1x
+                    // Use exponential decay for smooth settle
+                    const sizeFactor = 1 + Math.exp(-animProgress * 4) * 1.5; // 2.5x down to ~1x
+                    radius = baseRadius * sizeFactor;
+
+                    // Shake: decreasing amplitude over time
+                    const shakeAmplitude = 3 * (1 - animProgress); // 3px down to 0
+                    const shakeFrequency = 20; // Hz
+                    const shakePhase = Date.now() * shakeFrequency / 1000 * Math.PI * 2;
+                    x += Math.sin(shakePhase) * shakeAmplitude;
+                    y += Math.cos(shakePhase * 1.3) * shakeAmplitude;
+
+                    // Glow: draw multiple expanding circles with decreasing opacity
+                    const glowIntensity = 1 - animProgress; // Fades over time
+                    for (let i = 3; i >= 1; i--) {
+                        const glowRadius = radius + i * 4;
+                        const glowAlpha = glowIntensity * 0.3 / i;
+                        ctx.beginPath();
+                        ctx.arc(x, y, glowRadius, 0, Math.PI * 2);
+                        ctx.fillStyle = color.replace(')', `, ${glowAlpha})`).replace('rgb', 'rgba').replace('#', '');
+                        // Convert hex to rgba for glow
+                        if (color.startsWith('#')) {
+                            const r = parseInt(color.slice(1, 3), 16);
+                            const g = parseInt(color.slice(3, 5), 16);
+                            const b = parseInt(color.slice(5, 7), 16);
+                            ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${glowAlpha})`;
+                        }
+                        ctx.fill();
+                    }
                 }
 
                 if (shot.shotData.made) {

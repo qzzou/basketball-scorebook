@@ -523,6 +523,31 @@ const HotButtonsUI = (() => {
             });
             Storage.saveHotButtons(hotButtons);
             this.refreshHotButtonsGrid();
+        },
+
+        /**
+         * Remove all hot buttons
+         */
+        removeAllButtons() {
+            if (!confirm('Remove all buttons? This cannot be undone.')) {
+                return;
+            }
+
+            Storage.saveHotButtons([]);
+            this.refreshHotButtonsGrid();
+        },
+
+        /**
+         * Load default hot buttons (replaces current)
+         */
+        loadDefaultButtons() {
+            if (!confirm('Load default buttons? This will replace your current buttons.')) {
+                return;
+            }
+
+            // Clear saved hot buttons to force loading defaults
+            localStorage.removeItem('hotButtons');
+            this.refreshHotButtonsGrid();
         }
     };
 })();
