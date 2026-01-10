@@ -2,6 +2,31 @@
 // This combines multiple UI modules into one for initial working prototype
 
 const UI = (() => {
+    /**
+     * Trigger haptic feedback if supported
+     * @param {string} type - 'light', 'medium', 'heavy', or 'error'
+     */
+    function haptic(type = 'light') {
+        if ('vibrate' in navigator) {
+            switch (type) {
+                case 'light':
+                    navigator.vibrate(10);
+                    break;
+                case 'medium':
+                    navigator.vibrate(20);
+                    break;
+                case 'heavy':
+                    navigator.vibrate(30);
+                    break;
+                case 'error':
+                    navigator.vibrate([30, 50, 30]);
+                    break;
+                default:
+                    navigator.vibrate(10);
+            }
+        }
+    }
+
     return {
         /**
          * Initialize all UI components
@@ -199,6 +224,7 @@ const UI = (() => {
          * Handle jersey click (edit mode)
          */
         handleJerseyClick(jerseyNumber) {
+            haptic('light');
             const appState = DataModel.getAppState();
 
             // Toggle selection - allow deselecting
@@ -230,6 +256,7 @@ const UI = (() => {
          * Handle jersey toggle (view mode)
          */
         handleJerseyToggle(jerseyNumber) {
+            haptic('light');
             const appState = DataModel.getAppState();
             const index = appState.selectedJerseys.indexOf(jerseyNumber);
 
@@ -246,6 +273,7 @@ const UI = (() => {
          * Handle select all/clear all in view mode
          */
         handleSelectToggle() {
+            haptic('light');
             const game = DataModel.getCurrentGame();
             const appState = DataModel.getAppState();
 
@@ -292,12 +320,12 @@ const UI = (() => {
                 title = `${playerCount} Players Selected`;
             }
 
-            // Build stats HTML conditionally - only include non-zero values
+            // Build stats HTML - always show PTS, only include other non-zero values
             let statsHtml = '';
 
-            if (stats.PTS > 0) {
-                statsHtml += `<div class="stat"><div class="value">${stats.PTS}</div><div class="label">PTS</div></div>`;
-            }
+            // Always show PTS
+            statsHtml += `<div class="stat"><div class="value">${stats.PTS || 0}</div><div class="label">PTS</div></div>`;
+
             if (stats.FOULS?.total > 0) {
                 statsHtml += `<div class="stat"><div class="value">${stats.FOULS.total}</div><div class="label">FLS</div></div>`;
             }
@@ -327,9 +355,7 @@ const UI = (() => {
             }
 
             container.innerHTML = `
-                <div class="view-mode-header">
-                    <h3>${title}</h3>
-                </div>
+                <div class="player-name-header">${title}</div>
                 <div class="stats-display">
                     ${statsHtml}
                 </div>
@@ -340,18 +366,22 @@ const UI = (() => {
          * Render stat row for selected player
          */
         renderStatRow(jerseyNumber) {
+            const game = DataModel.getCurrentGame();
             const statsCache = DataModel.getPlayerStatsCache();
             const stats = statsCache[jerseyNumber] || {};
 
             const container = document.getElementById('stat-row');
             if (!container) return;
 
-            // Build stats HTML conditionally - only include non-zero values
+            // Get player name
+            const playerName = game?.playerNames?.[jerseyNumber] || `Player ${jerseyNumber}`;
+
+            // Build stats HTML - always show PTS, only include other non-zero values
             let statsHtml = '';
 
-            if (stats.PTS > 0) {
-                statsHtml += `<div class="stat"><div class="value">${stats.PTS}</div><div class="label">PTS</div></div>`;
-            }
+            // Always show PTS
+            statsHtml += `<div class="stat"><div class="value">${stats.PTS || 0}</div><div class="label">PTS</div></div>`;
+
             if (stats.FOULS?.total > 0) {
                 statsHtml += `<div class="stat stat-warning"><div class="value">${stats.FOULS.total}</div><div class="label">FLS</div></div>`;
             }
@@ -381,6 +411,7 @@ const UI = (() => {
             }
 
             container.innerHTML = `
+                <div class="player-name-header">${playerName}</div>
                 <div class="stats-display">
                     ${statsHtml}
                 </div>
@@ -467,6 +498,7 @@ const UI = (() => {
          * Handle shot button - NEW WORKFLOW
          */
         handleShotButton(points, made) {
+            haptic('medium');
             const appState = DataModel.getAppState();
             const jerseyNumber = appState.selectedJersey;
             if (jerseyNumber === null) return;
@@ -498,6 +530,7 @@ const UI = (() => {
          * Handle stat button
          */
         handleStatButton(statType) {
+            haptic('medium');
             const appState = DataModel.getAppState();
             const jerseyNumber = appState.selectedJersey;
             if (jerseyNumber === null) return;
@@ -537,6 +570,7 @@ const UI = (() => {
          * Handle foul button (+FOUL or +TECH)
          */
         handleFoulButton(foulType) {
+            haptic('heavy');
             const appState = DataModel.getAppState();
             const jerseyNumber = appState.selectedJersey;
             if (jerseyNumber === null) return;
@@ -923,6 +957,7 @@ const UI = (() => {
          * Handle Done button
          */
         handleDone() {
+            haptic('heavy');
             const appState = DataModel.getAppState();
             const jerseyNumber = appState.selectedJersey;
             const pendingShot = appState.pendingShot;
@@ -963,6 +998,7 @@ const UI = (() => {
          * Handle Cancel button
          */
         handleCancel() {
+            haptic('light');
             // Stop shake animation
             this.stopDoneButtonShake();
 

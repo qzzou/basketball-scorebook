@@ -339,12 +339,20 @@ button:disabled {
     color: #000 !important;
 }
 
+.player-name-header {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 0.25rem;
+}
+
 .stats-display {
     display: flex;
     gap: 0.5rem;
     flex-wrap: nowrap;
     overflow-x: auto;
     min-height: 2.5rem; /* Reserve space for stats even when empty */
+    justify-content: flex-start;
 }
 
 .stat {
@@ -403,9 +411,11 @@ button:disabled {
     background: #667eea !important; /* Darker blue when pressed */
 }
 
-/* Foul button styles */
+/* Foul button styles - double width */
 .action-btn.foul-btn {
     background: #ffcccc !important; /* Light red for unselected */
+    flex: 2 1 calc(50% - 0.25rem); /* Double width: 2 buttons + gap */
+    max-width: calc(50% - 0.25rem);
 }
 
 .action-btn.foul-btn:hover {

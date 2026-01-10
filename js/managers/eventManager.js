@@ -98,6 +98,32 @@ const EventManager = (() => {
         },
 
         /**
+         * Get human-readable description of an event
+         */
+        getEventDescription(event, game) {
+            const playerName = game.playerNames[event.playerNumber] || `#${event.playerNumber}`;
+
+            if (event.action === 'shot') {
+                const shotType = event.shotData.shotType;
+                const made = event.shotData.made;
+                const shotName = shotType === 'FT' ? 'free throw' :
+                                 shotType === '3PT' ? '3-pointer' : '2-pointer';
+                return `${made ? 'made' : 'missed'} ${shotName} by ${playerName}`;
+            } else if (event.action === 'stat') {
+                const statType = event.statData.type;
+                const statName = {
+                    'REB': 'rebound', 'AST': 'assist', 'STL': 'steal',
+                    'BLK': 'block', 'TO': 'turnover'
+                }[statType] || statType;
+                return `${statName} by ${playerName}`;
+            } else if (event.action === 'foul') {
+                const foulType = event.foulData.type.startsWith('P') ? 'personal foul' : 'technical foul';
+                return `${foulType} by ${playerName}`;
+            }
+            return `event by ${playerName}`;
+        },
+
+        /**
          * Undo the last active event
          */
         undoLastEvent() {
@@ -114,6 +140,12 @@ const EventManager = (() => {
             const lastEvent = activeEvents.reduce((latest, event) =>
                 event.eventIndex > latest.eventIndex ? event : latest
             );
+
+            // Ask for confirmation
+            const description = this.getEventDescription(lastEvent, game);
+            if (!confirm(`Remove ${description}?`)) {
+                return;
+            }
 
             // Mark as archived
             DataModel.updateEvent(lastEvent.eventIndex, {
@@ -161,6 +193,12 @@ const EventManager = (() => {
 
             if (!nextArchivedEvent) {
                 console.log('No events to redo');
+                return;
+            }
+
+            // Ask for confirmation
+            const description = this.getEventDescription(nextArchivedEvent, game);
+            if (!confirm(`Restore ${description}?`)) {
                 return;
             }
 
