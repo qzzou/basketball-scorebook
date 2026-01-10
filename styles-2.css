@@ -543,6 +543,17 @@ button:disabled {
     color: white !important;
 }
 
+/* Flash animation for instant shot recording */
+@keyframes flash {
+    0% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.1); opacity: 0.8; }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+.action-btn.flash {
+    animation: flash 0.2s ease-out;
+}
+
 /* Court Canvas */
 .court-container {
     width: 100%;

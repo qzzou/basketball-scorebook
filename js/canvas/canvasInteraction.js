@@ -1,6 +1,10 @@
 // Canvas Interaction - Touch/mouse handlers with iOS optimizations
 
 const CanvasInteraction = (() => {
+    // Store current callback to avoid duplicate listeners
+    let currentOnTap = null;
+    let listenersAttached = false;
+
     return {
         /**
          * Setup canvas interactions (touch and mouse)
@@ -11,9 +15,15 @@ const CanvasInteraction = (() => {
         setupCanvasInteractions(canvas, onTap, onTapPixels) {
             if (!canvas) return;
 
-            const ctx = canvas.getContext('2d');
             const canvasWidth = canvas.width / (window.devicePixelRatio || 1);
             const canvasHeight = canvas.height / (window.devicePixelRatio || 1);
+
+            // Update the callback reference (allows changing behavior without re-adding listeners)
+            currentOnTap = onTap;
+
+            // Only attach listeners once per canvas
+            if (listenersAttached) return;
+            listenersAttached = true;
 
             // Disable iOS text selection and copy menu
             canvas.style.webkitUserSelect = 'none';
@@ -37,12 +47,16 @@ const CanvasInteraction = (() => {
                 const x = touch.clientX - rect.left;
                 const y = touch.clientY - rect.top;
 
-                // Convert to normalized coordinates
-                const normalizedX = x / canvasWidth;
-                const normalizedY = y / canvasHeight;
+                // Recalculate canvas dimensions in case they changed
+                const cw = canvas.width / (window.devicePixelRatio || 1);
+                const ch = canvas.height / (window.devicePixelRatio || 1);
 
-                if (onTap) {
-                    onTap(normalizedX, normalizedY);
+                // Convert to normalized coordinates
+                const normalizedX = x / cw;
+                const normalizedY = y / ch;
+
+                if (currentOnTap) {
+                    currentOnTap(normalizedX, normalizedY);
                 }
 
                 // Haptic feedback (if available)
@@ -57,12 +71,16 @@ const CanvasInteraction = (() => {
                 const x = e.clientX - rect.left;
                 const y = e.clientY - rect.top;
 
-                // Convert to normalized coordinates
-                const normalizedX = x / canvasWidth;
-                const normalizedY = y / canvasHeight;
+                // Recalculate canvas dimensions in case they changed
+                const cw = canvas.width / (window.devicePixelRatio || 1);
+                const ch = canvas.height / (window.devicePixelRatio || 1);
 
-                if (onTap) {
-                    onTap(normalizedX, normalizedY);
+                // Convert to normalized coordinates
+                const normalizedX = x / cw;
+                const normalizedY = y / ch;
+
+                if (currentOnTap) {
+                    currentOnTap(normalizedX, normalizedY);
                 }
             });
         },

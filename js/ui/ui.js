@@ -114,7 +114,13 @@ const UI = (() => {
                     </div>
                 `;
                 this.renderStatButtons();
-                this.hideGuideText();
+                // Check for unplaced shots even when no player selected
+                const unplacedShots = this.getUnplacedShots();
+                if (unplacedShots.length > 0) {
+                    this.updateGuideTextForUnplacedShots();
+                } else {
+                    this.hideGuideText();
+                }
             }
 
             // Update undo/redo buttons
@@ -264,19 +270,19 @@ const UI = (() => {
             let statsHtml = '';
 
             // Always show PTS
-            statsHtml += `<div class="stat"><div class="value">${stats.PTS || 0}</div><div class="label">PTS</div></div>`;
+            statsHtml += `<div class="stat" data-stat-type="PTS"><div class="value">${stats.PTS || 0}</div><div class="label">PTS</div></div>`;
 
             if (stats.FOULS?.total > 0) {
-                statsHtml += `<div class="stat stat-warning"><div class="value">${stats.FOULS.total}</div><div class="label">FLS</div></div>`;
+                statsHtml += `<div class="stat stat-warning" data-stat-type="FLS"><div class="value">${stats.FOULS.total}</div><div class="label">FLS</div></div>`;
             }
             if (stats.FT?.attempts > 0) {
-                statsHtml += `<div class="stat"><div class="value">${Formatters.formatFT(stats.FT)}</div><div class="label">FT</div></div>`;
+                statsHtml += `<div class="stat" data-stat-type="FT"><div class="value">${Formatters.formatFT(stats.FT)}</div><div class="label">FT</div></div>`;
             }
             if (stats.FG?.attempts > 0) {
-                statsHtml += `<div class="stat"><div class="value">${Formatters.formatFG(stats.FG)}</div><div class="label">FG</div></div>`;
+                statsHtml += `<div class="stat" data-stat-type="FG"><div class="value">${Formatters.formatFG(stats.FG)}</div><div class="label">FG</div></div>`;
             }
             if (stats['3PT']?.attempts > 0) {
-                statsHtml += `<div class="stat"><div class="value">${Formatters.format3PT(stats['3PT'])}</div><div class="label">3PT</div></div>`;
+                statsHtml += `<div class="stat" data-stat-type="3PT"><div class="value">${Formatters.format3PT(stats['3PT'])}</div><div class="label">3PT</div></div>`;
             }
             if (stats.REB > 0) {
                 statsHtml += `<div class="stat" data-stat-type="REB"><div class="value">${stats.REB}</div><div class="label">REB</div></div>`;
@@ -376,7 +382,9 @@ const UI = (() => {
         },
 
         /**
-         * Handle shot button - NEW WORKFLOW
+         * Handle shot button - INSTANT RECORDING
+         * Shot is recorded immediately with unplaced location
+         * User can then tap court to place shot location
          */
         handleShotButton(points, made) {
             haptic('medium');
@@ -386,25 +394,45 @@ const UI = (() => {
 
             const shotType = points === 1 ? 'FT' : points === 3 ? '3PT' : 'FG';
 
-            // Deselect all other shot buttons, select this one
-            appState.selectedShotType = { points, made, shotType };
-            appState.pendingShot = null; // Clear any pending shot
+            // Instantly record the shot event with unplaced location
+            EventManager.addEvent(jerseyNumber, 'shot', {
+                shotData: {
+                    made: made,
+                    shotType: shotType,
+                    location: null // null means unplaced
+                }
+            });
 
-            // Update shot button selection visuals
-            const shotButtons = document.querySelectorAll('.shot-buttons-row .action-btn');
-            shotButtons.forEach(btn => btn.classList.remove('selected'));
-
-            // Find and select the clicked button
-            const clickedButton = event.target;
-            if (clickedButton && clickedButton.classList.contains('action-btn')) {
-                clickedButton.classList.add('selected');
+            // Flash the button to show it registered
+            const clickedButton = event.target.closest('.action-btn');
+            if (clickedButton) {
+                clickedButton.classList.add('flash');
+                setTimeout(() => clickedButton.classList.remove('flash'), 200);
             }
 
-            // Show Draw Row
-            this.showDrawRow(jerseyNumber, points, made);
+            // Animate the corresponding stat displays (after short delay for DOM update)
+            setTimeout(() => {
+                // Animate PTS if made
+                if (made) {
+                    const ptsElement = document.querySelector('.stat[data-stat-type="PTS"]');
+                    if (ptsElement) {
+                        ptsElement.classList.add('stat-shake');
+                        setTimeout(() => ptsElement.classList.remove('stat-shake'), 3000);
+                    }
+                }
+                // Animate the shot type stat (FT, FG, or 3PT)
+                const shotStatElement = document.querySelector(`.stat[data-stat-type="${shotType}"]`);
+                if (shotStatElement) {
+                    shotStatElement.classList.add('stat-shake');
+                    setTimeout(() => shotStatElement.classList.remove('stat-shake'), 3000);
+                }
+            }, 100);
 
-            // Hide existing shots on canvas
-            this.renderCanvas(true); // hideShots = true
+            // Update guide text to prompt for placing shots
+            this.updateGuideTextForUnplacedShots();
+
+            // Re-render canvas to show all shots
+            this.renderCanvas();
         },
 
         /**
@@ -499,6 +527,15 @@ const UI = (() => {
             EventManager.addEvent(jerseyNumber, 'foul', {
                 foulData: { type: foulEventType }
             });
+
+            // Animate the FLS stat display (after short delay for DOM update)
+            setTimeout(() => {
+                const flsElement = document.querySelector('.stat[data-stat-type="FLS"]');
+                if (flsElement) {
+                    flsElement.classList.add('stat-shake');
+                    setTimeout(() => flsElement.classList.remove('stat-shake'), 3000);
+                }
+            }, 100);
 
             // Show 2-second text overlay on canvas
             const foulName = foulType === 'FOUL' ? 'a personal foul' : 'a technical foul';
@@ -680,10 +717,10 @@ const UI = (() => {
          * Handle tap on canvas
          */
         handleCanvasTap(x, y) {
-            // Only handle shot drawing mode
-            const drawRow = document.getElementById('draw-row');
-            if (drawRow && drawRow.style.display !== 'none') {
-                this.handleShotDrawn(x, y);
+            // Check if there are unplaced shots to place
+            const unplacedShots = this.getUnplacedShots();
+            if (unplacedShots.length > 0) {
+                this.handleCourtTap(x, y);
             }
         },
 
@@ -780,9 +817,16 @@ const UI = (() => {
          * Show guide text (edit mode, player selected)
          */
         showGuideText() {
+            // Check for unplaced shots first
+            const unplacedShots = this.getUnplacedShots();
+            if (unplacedShots.length > 0) {
+                this.updateGuideTextForUnplacedShots();
+                return;
+            }
+
             const guideText = document.getElementById('guide-text');
             if (guideText) {
-                guideText.textContent = 'tap a stat button or shot button above, then tap on court for shots';
+                guideText.textContent = 'tap a stat button or shot button above';
                 guideText.style.display = 'block';
             }
         },
@@ -798,7 +842,97 @@ const UI = (() => {
         },
 
         /**
-         * Handle shot drawn on canvas
+         * Get unplaced shot events (shots with no location)
+         * Returns them in chronological order (earliest first)
+         */
+        getUnplacedShots() {
+            const game = DataModel.getCurrentGame();
+            if (!game) return [];
+
+            return game.gameEvents.filter(e =>
+                e.eventStatus === 'active' &&
+                e.action === 'shot' &&
+                e.shotData &&
+                e.shotData.location === null
+            ).sort((a, b) => a.timestamp - b.timestamp);
+        },
+
+        /**
+         * Update guide text to show prompt for placing unplaced shots
+         */
+        updateGuideTextForUnplacedShots() {
+            const guideText = document.getElementById('guide-text');
+            if (!guideText) return;
+
+            const unplacedShots = this.getUnplacedShots();
+
+            if (unplacedShots.length > 0) {
+                const game = DataModel.getCurrentGame();
+                const shot = unplacedShots[0]; // earliest unplaced
+                const playerName = game.playerNames[shot.playerNumber] || `#${shot.playerNumber}`;
+                const madeText = shot.shotData.made ? 'made' : 'missed';
+                const shotTypeText = shot.shotData.shotType;
+
+                if (unplacedShots.length === 1) {
+                    guideText.textContent = `Tap court to place ${playerName} ${madeText} ${shotTypeText}`;
+                } else {
+                    guideText.textContent = `Tap court to place ${playerName} ${madeText} ${shotTypeText} (${unplacedShots.length} unplaced)`;
+                }
+                guideText.style.display = 'block';
+            } else {
+                // No unplaced shots, show default guide text
+                this.showGuideText();
+            }
+        },
+
+        /**
+         * Handle court tap - place earliest unplaced shot
+         */
+        handleCourtTap(normalizedX, normalizedY) {
+            const unplacedShots = this.getUnplacedShots();
+
+            if (unplacedShots.length === 0) {
+                // No unplaced shots, ignore tap
+                return;
+            }
+
+            haptic('light');
+
+            // Get the earliest unplaced shot
+            const shot = unplacedShots[0];
+
+            // Auto-snap to legal location based on shot type
+            const adjustedLocation = ShotRenderer.adjustShotLocation(
+                normalizedX,
+                normalizedY,
+                shot.shotData.shotType
+            );
+
+            // Convert to feet coordinates for export compatibility
+            const feetCoords = ShotRenderer.convertToFeet(adjustedLocation.x, adjustedLocation.y);
+
+            // Update the shot event with location
+            EventManager.editEvent(shot.eventIndex, 'shot', {
+                shotData: {
+                    ...shot.shotData,
+                    location: {
+                        x: adjustedLocation.x,
+                        y: adjustedLocation.y,
+                        x_ft: feetCoords.x_ft,
+                        y_ft: feetCoords.y_ft
+                    }
+                }
+            });
+
+            // Re-render canvas
+            this.renderCanvas();
+
+            // Update guide text for remaining unplaced shots
+            this.updateGuideTextForUnplacedShots();
+        },
+
+        /**
+         * Handle shot drawn on canvas (LEGACY - now redirects to handleCourtTap)
          */
         handleShotDrawn(normalizedX, normalizedY) {
             const appState = DataModel.getAppState();
