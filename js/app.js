@@ -147,61 +147,27 @@
         }
 
         const game = DataModel.getCurrentGame();
-        const teamStats = game ? StatCalculator.calculateTeamStats(game.gameEvents, game.teamRoster) : null;
 
         myContainer.innerHTML = `
             <div class="my-tab-content" style="padding-bottom: 80px;">
-                <h2>My Stats</h2>
-
-                ${game ? `
-                <div class="my-stats-card">
-                    <h3>${game.teamName} - ${game.gameName}</h3>
-                    <div class="stats-grid">
-                        <div class="stat-item">
-                            <div class="stat-value">${teamStats?.PTS || 0}</div>
-                            <div class="stat-label">Points</div>
-                        </div>
-                        <div class="stat-item">
-                            <div class="stat-value">${teamStats?.FG?.attempts || 0}</div>
-                            <div class="stat-label">FG Att</div>
-                        </div>
-                        <div class="stat-item">
-                            <div class="stat-value">${teamStats?.['3PT']?.attempts || 0}</div>
-                            <div class="stat-label">3PT Att</div>
-                        </div>
-                        <div class="stat-item">
-                            <div class="stat-value">${teamStats?.REB || 0}</div>
-                            <div class="stat-label">Rebounds</div>
-                        </div>
-                        <div class="stat-item">
-                            <div class="stat-value">${teamStats?.AST || 0}</div>
-                            <div class="stat-label">Assists</div>
-                        </div>
-                        <div class="stat-item">
-                            <div class="stat-value">${teamStats?.STL || 0}</div>
-                            <div class="stat-label">Steals</div>
-                        </div>
-                    </div>
-                </div>
+                <h2 style="color: #667eea; margin-bottom: 0.5rem;">Quick Stats</h2>
+                <p style="font-size: 0.85rem; color: #666; margin-bottom: 1rem;">
+                    Custom counters for tracking anything you want. These are separate from official game stats.
+                </p>
 
                 <div class="my-stats-card">
-                    <h3>Roster (${game.teamRoster.length} players)</h3>
-                    <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
-                        ${game.teamRoster.map(jersey => {
-                            const name = game.playerNames[jersey] || '';
-                            return `<span style="background: #f0f0f0; padding: 0.5rem 0.75rem; border-radius: 4px; font-size: 0.9rem;">
-                                #${jersey}${name ? ' ' + name : ''}
-                            </span>`;
-                        }).join('')}
-                    </div>
+                    ${game ? `<h3 style="margin-bottom: 0.5rem;">${game.teamName} - ${game.gameName}</h3>` : ''}
+                    ${HotButtonsUI.render()}
                 </div>
-                ` : `
-                <div class="my-stats-card">
-                    <p style="text-align: center; color: #666;">No game loaded. Go to Settings to set up your team.</p>
-                </div>
-                `}
+
+                <button class="btn-secondary" style="width: 100%; margin-top: 1rem;" onclick="HotButtonsUI.resetAllCounters()">
+                    Reset All Counters
+                </button>
             </div>
         `;
+
+        // Setup hot button handlers
+        HotButtonsUI.setupHandlers();
     }
 
     /**
@@ -224,8 +190,10 @@
     window.SettingsUI = SettingsUI;
     window.GameHistoryUI = GameHistoryUI;
     window.ActionCorrectionUI = ActionCorrectionUI;
+    window.HotButtonsUI = HotButtonsUI;
     window.PDFExport = PDFExport;
     window.switchTab = switchTab;
     window.setInitialTab = setInitialTab;
+    window.showMyTab = showMyTab;
 
 })();

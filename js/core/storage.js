@@ -3,8 +3,15 @@
 const Storage = (() => {
     const GAME_LIST_KEY = 'gameList';
     const CURRENT_GAME_ID_KEY = 'currentGameId';
+    const HOT_BUTTONS_KEY = 'hotButtons';
 
     let autoSaveEnabled = true;
+
+    // Default hot buttons (independent counters, not tied to game events)
+    const DEFAULT_HOT_BUTTONS = [
+        { id: 'hb_1', label: 'Team REB', count: 0 },
+        { id: 'hb_2', label: 'Team AST', count: 0 }
+    ];
 
     return {
         /**
@@ -149,7 +156,7 @@ const Storage = (() => {
         },
 
         /**
-         * Export game as JSON file
+         * Export game as JSON file (includes game, team template, and hot buttons)
          * @param {string} gameId - Game ID to export
          */
         exportGameAsJSON(gameId) {
@@ -159,7 +166,21 @@ const Storage = (() => {
                 return;
             }
 
-            const json = JSON.stringify(gameData, null, 2);
+            // Create export bundle with game, team template, and hot buttons
+            const exportBundle = {
+                version: '2.0',
+                exportType: 'full',
+                exportedAt: Date.now(),
+                game: gameData,
+                teamTemplate: {
+                    teamName: gameData.teamName,
+                    teamRoster: gameData.teamRoster,
+                    playerNames: gameData.playerNames
+                },
+                hotButtons: this.getHotButtons()
+            };
+
+            const json = JSON.stringify(exportBundle, null, 2);
             const blob = new Blob([json], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
 
@@ -175,13 +196,21 @@ const Storage = (() => {
         },
 
         /**
-         * Import game from JSON string
+         * Import game from JSON string (supports both old format and new bundle format)
          * @param {string} jsonString - JSON string containing game data
          * @returns {boolean} Success status
          */
         importGameFromJSON(jsonString) {
             try {
-                const gameData = JSON.parse(jsonString);
+                const parsed = JSON.parse(jsonString);
+
+                // Check if it's the new bundle format
+                if (parsed.version && parsed.exportType === 'full') {
+                    return this.importBundle(parsed);
+                }
+
+                // Legacy format: just game data
+                const gameData = parsed;
 
                 // Validate game data structure
                 if (!gameData.gameName || !gameData.teamName || !gameData.gameEvents) {
@@ -201,6 +230,48 @@ const Storage = (() => {
             } catch (error) {
                 console.error('Error importing game:', error);
                 alert('Failed to import game. Invalid JSON format.');
+                return false;
+            }
+        },
+
+        /**
+         * Import bundle (game + team template + hot buttons)
+         * @param {Object} bundle - Export bundle object
+         * @returns {boolean} Success status
+         */
+        importBundle(bundle) {
+            try {
+                // Import game data
+                if (bundle.game) {
+                    const gameData = bundle.game;
+
+                    // Validate game data structure
+                    if (!gameData.gameName || !gameData.teamName || !gameData.gameEvents) {
+                        alert('Invalid game data format');
+                        return false;
+                    }
+
+                    // Assign new game ID to avoid conflicts
+                    gameData.gameId = IDGenerator.generateGameId();
+                    gameData.lastModified = Date.now();
+
+                    // Save imported game
+                    this.saveGame(gameData);
+                    console.log('Game imported:', gameData.gameName);
+                }
+
+                // Import hot buttons (optional - prompt user)
+                if (bundle.hotButtons && bundle.hotButtons.length > 0) {
+                    if (confirm('Import hot buttons from this file? This will replace your current hot buttons.')) {
+                        this.saveHotButtons(bundle.hotButtons);
+                        console.log('Hot buttons imported:', bundle.hotButtons.length);
+                    }
+                }
+
+                return true;
+            } catch (error) {
+                console.error('Error importing bundle:', error);
+                alert('Failed to import. Invalid format.');
                 return false;
             }
         },
@@ -259,6 +330,79 @@ const Storage = (() => {
             if (currentGame) {
                 this.saveGame(currentGame);
             }
+        },
+
+        /**
+         * Get hot buttons configuration
+         * @returns {Array} Array of hot button configs
+         */
+        getHotButtons() {
+            try {
+                const data = localStorage.getItem(HOT_BUTTONS_KEY);
+                if (data) {
+                    return JSON.parse(data);
+                }
+                // Return default hot buttons if none saved
+                return [...DEFAULT_HOT_BUTTONS];
+            } catch (error) {
+                console.error('Error loading hot buttons:', error);
+                return [...DEFAULT_HOT_BUTTONS];
+            }
+        },
+
+        /**
+         * Save hot buttons configuration
+         * @param {Array} hotButtons - Array of hot button configs
+         */
+        saveHotButtons(hotButtons) {
+            try {
+                localStorage.setItem(HOT_BUTTONS_KEY, JSON.stringify(hotButtons));
+            } catch (error) {
+                console.error('Error saving hot buttons:', error);
+            }
+        },
+
+        /**
+         * Add a new hot button
+         * @param {Object} buttonConfig - { who, what, label }
+         * @returns {Object} The new hot button with id
+         */
+        addHotButton(buttonConfig) {
+            const hotButtons = this.getHotButtons();
+            if (hotButtons.length >= 16) {
+                return null; // Max 16 buttons (2x8 grid)
+            }
+            const newButton = {
+                id: 'hb_' + Date.now(),
+                ...buttonConfig
+            };
+            hotButtons.push(newButton);
+            this.saveHotButtons(hotButtons);
+            return newButton;
+        },
+
+        /**
+         * Update a hot button
+         * @param {string} buttonId - Button ID to update
+         * @param {Object} updates - Properties to update
+         */
+        updateHotButton(buttonId, updates) {
+            const hotButtons = this.getHotButtons();
+            const index = hotButtons.findIndex(b => b.id === buttonId);
+            if (index >= 0) {
+                hotButtons[index] = { ...hotButtons[index], ...updates };
+                this.saveHotButtons(hotButtons);
+            }
+        },
+
+        /**
+         * Delete a hot button
+         * @param {string} buttonId - Button ID to delete
+         */
+        deleteHotButton(buttonId) {
+            const hotButtons = this.getHotButtons();
+            const filtered = hotButtons.filter(b => b.id !== buttonId);
+            this.saveHotButtons(filtered);
         }
     };
 })();

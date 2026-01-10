@@ -512,7 +512,34 @@ const UI = (() => {
 
             const teamStats = StatCalculator.calculateTeamStats(game.gameEvents, game.teamRoster);
 
+            // Team stats overview grid (above the table)
             let html = `
+                <div class="team-stats-grid">
+                    <div class="team-stat-item">
+                        <div class="team-stat-value">${teamStats.PTS || 0}</div>
+                        <div class="team-stat-label">Points</div>
+                    </div>
+                    <div class="team-stat-item">
+                        <div class="team-stat-value">${teamStats.FG?.attempts || 0}</div>
+                        <div class="team-stat-label">FG Att</div>
+                    </div>
+                    <div class="team-stat-item">
+                        <div class="team-stat-value">${teamStats['3PT']?.attempts || 0}</div>
+                        <div class="team-stat-label">3PT Att</div>
+                    </div>
+                    <div class="team-stat-item">
+                        <div class="team-stat-value">${teamStats.REB || 0}</div>
+                        <div class="team-stat-label">Rebounds</div>
+                    </div>
+                    <div class="team-stat-item">
+                        <div class="team-stat-value">${teamStats.AST || 0}</div>
+                        <div class="team-stat-label">Assists</div>
+                    </div>
+                    <div class="team-stat-item">
+                        <div class="team-stat-value">${teamStats.STL || 0}</div>
+                        <div class="team-stat-label">Steals</div>
+                    </div>
+                </div>
                 <table>
                     <thead>
                         <tr>
