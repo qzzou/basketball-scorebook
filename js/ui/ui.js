@@ -108,10 +108,10 @@ const UI = (() => {
                 this.renderStatRow(appState.selectedJersey);
                 this.showGuideText();
             } else {
-                // No players in roster
+                // No players in roster - show empty stat row with just undo/redo
                 document.getElementById('stat-row').innerHTML = `
                     <div class="player-name-row">
-                        <p class="help-text-inline">add a player above to begin</p>
+                        <div></div>
                         <div class="undo-redo-buttons">
                             <button id="undo-btn" class="text-btn" title="Undo" onclick="EventManager.undoLastEvent()">Undo</button>
                             <button id="redo-btn" class="text-btn" title="Redo" onclick="EventManager.redoLastEvent()">Redo</button>
@@ -146,18 +146,8 @@ const UI = (() => {
 
             container.innerHTML = '';
 
-            // If no players, show "Add Player" button
+            // If no players, leave jersey row empty
             if (game.teamRoster.length === 0) {
-                const addBtn = document.createElement('button');
-                addBtn.className = 'jersey-btn add-player-btn';
-                addBtn.innerHTML = '<i data-lucide="user-round-plus"></i>';
-                addBtn.onclick = () => SettingsUI.show();
-                container.appendChild(addBtn);
-
-                // Initialize Lucide icons
-                if (window.lucide) {
-                    lucide.createIcons();
-                }
                 return;
             }
 
