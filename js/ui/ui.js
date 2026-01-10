@@ -338,6 +338,7 @@ const UI = (() => {
             const container = document.getElementById('shot-buttons-section');
             if (!container) return;
             container.innerHTML = '';
+            container.style.display = 'none';
         },
 
         /**
@@ -543,7 +544,15 @@ const UI = (() => {
                 const jerseyAndName = `#${event.playerNumber} ${playerName}`;
                 const sentence = Formatters.formatEventToSentence(event, jerseyAndName);
                 const time = Formatters.formatTime(event.timestamp);
-                const className = event.edited ? 'edited' : '';
+
+                // Determine class: edited takes precedence, then unplaced shots
+                let className = '';
+                if (event.edited) {
+                    className = 'edited';
+                } else if (event.action === 'shot' && event.shotData && event.shotData.location === null) {
+                    className = 'unplaced';
+                }
+
                 return `<div class="action-item ${className}" onclick="UI.handleActionClick(${event.eventIndex})">[${time}] ${sentence}</div>`;
             }).join('');
         },
@@ -894,17 +903,12 @@ const UI = (() => {
             // Convert to feet coordinates for export compatibility
             const feetCoords = ShotRenderer.convertToFeet(adjustedLocation.x, adjustedLocation.y);
 
-            // Update the shot event with location
-            EventManager.editEvent(shot.eventIndex, 'shot', {
-                shotData: {
-                    ...shot.shotData,
-                    location: {
-                        x: adjustedLocation.x,
-                        y: adjustedLocation.y,
-                        x_ft: feetCoords.x_ft,
-                        y_ft: feetCoords.y_ft
-                    }
-                }
+            // Place shot location (does not mark as edited)
+            EventManager.placeShotLocation(shot.eventIndex, {
+                x: adjustedLocation.x,
+                y: adjustedLocation.y,
+                x_ft: feetCoords.x_ft,
+                y_ft: feetCoords.y_ft
             });
 
             // Start animation for the placed shot

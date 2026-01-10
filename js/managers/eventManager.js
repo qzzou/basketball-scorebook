@@ -72,6 +72,36 @@ const EventManager = (() => {
         },
 
         /**
+         * Place a shot location (does not mark as edited)
+         * @param {number} eventIndex - Index of shot event
+         * @param {Object} location - Location data {x, y, x_ft, y_ft}
+         */
+        placeShotLocation(eventIndex, location) {
+            const game = DataModel.getCurrentGame();
+            if (!game) return;
+
+            const event = game.gameEvents.find(e => e.eventIndex === eventIndex);
+            if (!event || event.action !== 'shot') {
+                console.error('Shot event not found:', eventIndex);
+                return;
+            }
+
+            // Update shot location without setting edited flag
+            DataModel.updateEvent(eventIndex, {
+                shotData: {
+                    ...event.shotData,
+                    location: location
+                }
+            });
+
+            // Auto-save
+            Storage.autoSave();
+
+            // Emit event
+            EventBus.emit('event:edited', event);
+        },
+
+        /**
          * Delete an event (mark as deleted)
          * @param {number} eventIndex - Index of event to delete
          */
