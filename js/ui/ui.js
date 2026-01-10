@@ -104,7 +104,15 @@ const UI = (() => {
                 this.showGuideText();
             } else {
                 const helpText = game.teamRoster.length === 0 ? 'Add a player above to begin' : 'Select a player above to begin';
-                document.getElementById('stat-row').innerHTML = `<p>${helpText}</p>`;
+                document.getElementById('stat-row').innerHTML = `
+                    <div class="player-name-row">
+                        <p style="margin: 0;">${helpText}</p>
+                        <div class="undo-redo-buttons">
+                            <button id="undo-btn" class="text-btn" title="Undo" onclick="EventManager.undoLastEvent()">Undo</button>
+                            <button id="redo-btn" class="text-btn" title="Redo" onclick="EventManager.redoLastEvent()">Redo</button>
+                        </div>
+                    </div>
+                `;
                 this.renderStatButtons();
                 this.hideGuideText();
             }
@@ -148,18 +156,52 @@ const UI = (() => {
                 return;
             }
 
-            // Render jersey buttons
+            // Get stats cache for foul counts
+            const statsCache = DataModel.getPlayerStatsCache();
+
+            // Render jersey buttons with foul indicators
             game.teamRoster.forEach(jerseyNumber => {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'jersey-wrapper';
+
                 const btn = document.createElement('button');
                 btn.textContent = jerseyNumber;
                 btn.className = 'jersey-btn';
 
+                // Get foul count for this player
+                const playerStats = statsCache[jerseyNumber] || {};
+                const foulCount = playerStats.FOULS?.total || 0;
+                const activeFouls = playerStats.FOULS?.activeFouls || {};
+                // Count technical fouls (T1, T2 keys)
+                const techCount = Object.keys(activeFouls).filter(k => k.startsWith('T') && activeFouls[k]).length;
+                const personalCount = foulCount - techCount;
+
                 if (appState.selectedJersey === jerseyNumber) {
                     btn.classList.add('selected');
                 }
-                btn.onclick = () => this.handleJerseyClick(jerseyNumber);
 
-                container.appendChild(btn);
+                // Add fouled-out class if 5+ personal fouls OR 2+ technical fouls
+                if (personalCount >= 5 || techCount >= 2) {
+                    btn.classList.add('fouled-out');
+                }
+
+                btn.onclick = () => this.handleJerseyClick(jerseyNumber);
+                wrapper.appendChild(btn);
+
+                // Add foul dots if player has fouls (up to 5)
+                if (foulCount > 0) {
+                    const dotsContainer = document.createElement('div');
+                    dotsContainer.className = 'foul-dots';
+                    const dotsToShow = Math.min(foulCount, 5);
+                    for (let i = 0; i < dotsToShow; i++) {
+                        const dot = document.createElement('span');
+                        dot.className = 'foul-dot';
+                        dotsContainer.appendChild(dot);
+                    }
+                    wrapper.appendChild(dotsContainer);
+                }
+
+                container.appendChild(wrapper);
             });
 
             // Add "Modify" button after all players
@@ -253,7 +295,13 @@ const UI = (() => {
             }
 
             container.innerHTML = `
-                <div class="player-name-header">${playerName}</div>
+                <div class="player-name-row">
+                    <div class="player-name-header">${playerName}</div>
+                    <div class="undo-redo-buttons">
+                        <button id="undo-btn" class="text-btn" title="Undo" onclick="EventManager.undoLastEvent()">Undo</button>
+                        <button id="redo-btn" class="text-btn" title="Redo" onclick="EventManager.redoLastEvent()">Redo</button>
+                    </div>
+                </div>
                 <div class="stats-display">
                     ${statsHtml}
                 </div>
@@ -512,33 +560,41 @@ const UI = (() => {
 
             const teamStats = StatCalculator.calculateTeamStats(game.gameEvents, game.teamRoster);
 
-            // Team stats overview grid (above the table)
+            // Build team stats HTML using same style as player stats row
+            let teamStatsHtml = '';
+            teamStatsHtml += `<div class="stat"><div class="value">${teamStats.PTS || 0}</div><div class="label">PTS</div></div>`;
+            if (teamStats.FOULS?.total > 0) {
+                teamStatsHtml += `<div class="stat stat-warning"><div class="value">${teamStats.FOULS.total}</div><div class="label">FLS</div></div>`;
+            }
+            if (teamStats.FT?.attempts > 0) {
+                teamStatsHtml += `<div class="stat"><div class="value">${Formatters.formatFT(teamStats.FT)}</div><div class="label">FT</div></div>`;
+            }
+            if (teamStats.FG?.attempts > 0) {
+                teamStatsHtml += `<div class="stat"><div class="value">${Formatters.formatFG(teamStats.FG)}</div><div class="label">FG</div></div>`;
+            }
+            if (teamStats['3PT']?.attempts > 0) {
+                teamStatsHtml += `<div class="stat"><div class="value">${Formatters.format3PT(teamStats['3PT'])}</div><div class="label">3PT</div></div>`;
+            }
+            if (teamStats.REB > 0) {
+                teamStatsHtml += `<div class="stat"><div class="value">${teamStats.REB}</div><div class="label">REB</div></div>`;
+            }
+            if (teamStats.AST > 0) {
+                teamStatsHtml += `<div class="stat"><div class="value">${teamStats.AST}</div><div class="label">AST</div></div>`;
+            }
+            if (teamStats.STL > 0) {
+                teamStatsHtml += `<div class="stat"><div class="value">${teamStats.STL}</div><div class="label">STL</div></div>`;
+            }
+            if (teamStats.BLK > 0) {
+                teamStatsHtml += `<div class="stat"><div class="value">${teamStats.BLK}</div><div class="label">BLK</div></div>`;
+            }
+            if (teamStats.TO > 0) {
+                teamStatsHtml += `<div class="stat stat-warning"><div class="value">${teamStats.TO}</div><div class="label">TO</div></div>`;
+            }
+
+            // Team stats overview using same style as player stats
             let html = `
-                <div class="team-stats-grid">
-                    <div class="team-stat-item">
-                        <div class="team-stat-value">${teamStats.PTS || 0}</div>
-                        <div class="team-stat-label">Points</div>
-                    </div>
-                    <div class="team-stat-item">
-                        <div class="team-stat-value">${teamStats.FG?.attempts || 0}</div>
-                        <div class="team-stat-label">FG Att</div>
-                    </div>
-                    <div class="team-stat-item">
-                        <div class="team-stat-value">${teamStats['3PT']?.attempts || 0}</div>
-                        <div class="team-stat-label">3PT Att</div>
-                    </div>
-                    <div class="team-stat-item">
-                        <div class="team-stat-value">${teamStats.REB || 0}</div>
-                        <div class="team-stat-label">Rebounds</div>
-                    </div>
-                    <div class="team-stat-item">
-                        <div class="team-stat-value">${teamStats.AST || 0}</div>
-                        <div class="team-stat-label">Assists</div>
-                    </div>
-                    <div class="team-stat-item">
-                        <div class="team-stat-value">${teamStats.STL || 0}</div>
-                        <div class="team-stat-label">Steals</div>
-                    </div>
+                <div class="stats-display" style="margin-bottom: 1rem;">
+                    ${teamStatsHtml}
                 </div>
                 <table>
                     <thead>

@@ -63,7 +63,7 @@ const HotButtonsUI = (() => {
                     ${buttonsHtml}
                 </div>
                 <p style="font-size: 0.75rem; color: #999; text-align: center; margin-top: 0.5rem;">
-                    Tap light bar to count, long press button to edit
+                    Tap +/- to count, long press button to edit
                 </p>
             `;
         },

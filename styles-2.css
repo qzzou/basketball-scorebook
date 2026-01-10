@@ -98,18 +98,6 @@ section h2 {
     font-style: italic;
 }
 
-/* Section Header (for Shot Map with controls) */
-.section-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1rem;
-}
-
-.section-header h2 {
-    margin-bottom: 0;
-}
-
 /* Buttons */
 button {
     cursor: pointer;
@@ -225,6 +213,41 @@ button:disabled {
 .jersey-btn.select-all-btn:hover {
     border-color: #667eea;
     color: #667eea !important;
+}
+
+/* Jersey wrapper for foul dots */
+.jersey-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+}
+
+/* Fouled out state (5+ fouls) */
+.jersey-btn.fouled-out {
+    background: #ffcdd2 !important;
+    border-color: #ef5350 !important;
+    color: #c62828 !important;
+}
+
+.jersey-btn.fouled-out.selected {
+    background: #ef5350 !important;
+    color: white !important;
+    border-color: #c62828 !important;
+}
+
+/* Foul dots under jersey */
+.foul-dots {
+    display: flex;
+    gap: 3px;
+    justify-content: center;
+}
+
+.foul-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #ef5350;
 }
 
 .control-buttons {
@@ -351,11 +374,27 @@ button:disabled {
     color: #000 !important;
 }
 
+.player-name-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.25rem;
+}
+
 .player-name-header {
     font-size: 1rem;
     font-weight: 600;
     color: #333;
-    margin-bottom: 0.25rem;
+}
+
+.undo-redo-buttons {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.undo-redo-buttons .text-btn {
+    font-size: 0.85rem;
+    padding: 0.25rem 0.5rem;
 }
 
 .stats-display {
@@ -670,49 +709,22 @@ button:disabled {
     font-weight: 500;
 }
 
-/* Team Stats Grid (above summary table) */
-.team-stats-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 0.75rem;
-    margin-bottom: 1.5rem;
-}
-
-.team-stat-item {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    border-radius: 12px;
-    padding: 1rem;
-    text-align: center;
-    color: white;
-}
-
-.team-stat-value {
-    font-size: 2rem;
-    font-weight: 700;
-    line-height: 1;
-}
-
-.team-stat-label {
-    font-size: 0.75rem;
-    margin-top: 0.25rem;
-    opacity: 0.9;
-}
-
 /* Summary Table */
 .summary-table {
     overflow-x: auto;
 }
 
 .summary-table table {
-    width: 100%;
+    width: auto;
     border-collapse: collapse;
 }
 
 .summary-table th,
 .summary-table td {
-    padding: 0.75rem;
+    padding: 0.5rem 0.75rem;
     text-align: center;
     border-bottom: 1px solid #eee;
+    white-space: nowrap;
 }
 
 .summary-table th {
@@ -721,6 +733,8 @@ button:disabled {
     color: #667eea;
 }
 
+.summary-table th:nth-child(1),
+.summary-table th:nth-child(2),
 .summary-table td:nth-child(1),
 .summary-table td:nth-child(2) {
     text-align: left;
@@ -803,14 +817,6 @@ button:disabled {
         min-width: 60px;
     }
 
-    .stats-display {
-        justify-content: space-between;
-    }
-
-    .stat {
-        flex: 1;
-        min-width: 60px;
-    }
 }
 
 @media (max-width: 360px) {
