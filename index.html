@@ -16,14 +16,6 @@
             <div id="team-name" class="team-name-header">Team Name - 0 pts</div>
             <h1 id="game-name">Basketball Scorebook</h1>
         </div>
-        <div class="header-buttons">
-            <button id="settings-btn" class="icon-btn" title="Settings">
-                <i data-lucide="settings"></i>
-            </button>
-            <button id="help-btn" class="icon-btn" title="Help">
-                <i data-lucide="info"></i>
-            </button>
-        </div>
     </header>
 
     <div class="app-container">
@@ -86,28 +78,27 @@
             <div id="summary-table" class="summary-table"></div>
         </section>
 
-        <!-- Game Management -->
-        <div class="game-management">
-            <button id="history-btn" class="btn-secondary">
-                <i data-lucide="history"></i> History
-            </button>
-            <button id="share-btn" class="btn-secondary">
-                <i data-lucide="share-2"></i> Share PDF
-            </button>
-            <button id="export-btn" class="btn-secondary">
-                <i data-lucide="download"></i> Export
-            </button>
-            <button id="import-btn" class="btn-secondary">
-                <i data-lucide="upload"></i> Import
-            </button>
-            <button id="clear-game-btn" class="btn-danger">
-                <i data-lucide="eraser"></i> Clear Game
-            </button>
-            <button id="new-game-btn" class="btn-primary">
-                <i data-lucide="plus-circle"></i> New Game
-            </button>
-        </div>
     </div>
+
+    <!-- Bottom Tab Bar -->
+    <nav class="tab-bar">
+        <button class="tab-btn" data-tab="my">
+            <i data-lucide="user"></i>
+            <span>My</span>
+        </button>
+        <button class="tab-btn" data-tab="game">
+            <i data-lucide="target"></i>
+            <span>Game</span>
+        </button>
+        <button class="tab-btn" data-tab="history">
+            <i data-lucide="history"></i>
+            <span>History</span>
+        </button>
+        <button class="tab-btn" data-tab="settings">
+            <i data-lucide="settings"></i>
+            <span>Settings</span>
+        </button>
+    </nav>
 
     <!-- Load Scripts in Order -->
     <!-- Utilities -->

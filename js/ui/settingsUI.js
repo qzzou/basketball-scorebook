@@ -36,7 +36,7 @@ const SettingsUI = (() => {
                         <!-- Import Roster -->
                         <div class="settings-section">
                             <label>Import Roster from MaxPreps</label>
-                            <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem;">
+                            <div style="display: flex; gap: 0.5rem;">
                                 <input type="text" id="maxpreps-url"
                                     value="https://www.maxpreps.com/ca/san-diego/canyon-crest-academy-ravens/basketball/girls/roster/"
                                     placeholder="MaxPreps roster URL"
@@ -45,9 +45,6 @@ const SettingsUI = (() => {
                                     Fetch Roster
                                 </button>
                             </div>
-                            <p style="font-size: 0.75rem; color: #666; margin: 0;">
-                                Enter a MaxPreps roster URL and click Fetch, or <a href="#" onclick="SettingsUI.showImportRosterModal(); return false;">paste manually</a>.
-                            </p>
                         </div>
 
                         <!-- Jersey Selection -->
@@ -112,7 +109,119 @@ const SettingsUI = (() => {
         },
 
         /**
-         * Render jersey grid (10x10)
+         * Show settings as a tab (inline content, not modal)
+         */
+        showAsTab() {
+            const game = DataModel.getCurrentGame();
+
+            // Create settings tab container
+            let container = document.getElementById('settings-tab-container');
+            if (!container) {
+                container = document.createElement('div');
+                container.id = 'settings-tab-container';
+                container.className = 'tab-overlay';
+                document.body.insertBefore(container, document.querySelector('.tab-bar'));
+            }
+
+            container.innerHTML = `
+                <div class="settings-tab-content" style="padding: 1rem; padding-bottom: 80px;">
+                    <h2 style="color: #667eea; margin-bottom: 1rem;">Settings</h2>
+
+                    ${game ? `
+                    <!-- Game Info -->
+                    <div class="my-stats-card">
+                        <div class="settings-section" style="margin-bottom: 1rem;">
+                            <label>Game Name</label>
+                            <input type="text" id="settings-game-name" value="${game.gameName}" placeholder="Game name">
+                        </div>
+
+                        <div class="settings-section" style="margin-bottom: 0;">
+                            <label>Team Name</label>
+                            <input type="text" id="settings-team-name" value="${game.teamName}" placeholder="Team name">
+                        </div>
+                    </div>
+
+                    <!-- Import Roster -->
+                    <div class="my-stats-card">
+                        <h3 style="margin-bottom: 0.75rem;">Import Roster from MaxPreps</h3>
+                        <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem;">
+                            <input type="text" id="maxpreps-url"
+                                value="https://www.maxpreps.com/ca/san-diego/canyon-crest-academy-ravens/basketball/girls/roster/"
+                                placeholder="MaxPreps roster URL"
+                                style="flex: 1; font-size: 0.8rem; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; direction: rtl; text-align: left;">
+                            <button class="btn-primary" onclick="SettingsUI.fetchRosterFromUrl()" style="white-space: nowrap;">
+                                Fetch
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Jersey Selection -->
+                    <div class="my-stats-card">
+                        <h3 style="margin-bottom: 0.75rem;">Team Roster</h3>
+                        <div id="jersey-grid" class="jersey-grid"></div>
+                    </div>
+
+                    <!-- Player Names -->
+                    <div class="my-stats-card">
+                        <h3 style="margin-bottom: 0.75rem;">Player Names</h3>
+                        <div id="player-names-section" class="player-names-section"></div>
+                    </div>
+
+                    <!-- Game Actions -->
+                    <div class="my-stats-card">
+                        <h3 style="margin-bottom: 0.75rem;">Game Actions</h3>
+                        <div style="display: flex; gap: 0.5rem;">
+                            <button id="share-btn" class="btn-secondary" style="flex: 1; padding: 0.5rem;" onclick="PDFExport.generatePDF()">
+                                <i data-lucide="share-2"></i> PDF
+                            </button>
+                            <button id="export-btn" class="btn-secondary" style="flex: 1; padding: 0.5rem;" onclick="SettingsUI.handleExport()">
+                                <i data-lucide="download"></i> Export
+                            </button>
+                            <button id="import-btn" class="btn-secondary" style="flex: 1; padding: 0.5rem;" onclick="SettingsUI.handleImport()">
+                                <i data-lucide="upload"></i> Import
+                            </button>
+                        </div>
+                    </div>
+                    ` : `
+                    <div class="my-stats-card">
+                        <p style="text-align: center; color: #666;">Loading...</p>
+                    </div>
+                    `}
+                </div>
+            `;
+
+            if (game) {
+                // Initialize components
+                this.renderJerseyGrid();
+                this.renderPlayerNames();
+
+                // Add event listeners
+                document.getElementById('jersey-grid').addEventListener('click', (e) => {
+                    if (e.target.classList.contains('jersey-grid-btn')) {
+                        this.handleJerseyToggle(parseInt(e.target.dataset.jersey));
+                    }
+                });
+
+                document.getElementById('settings-game-name').addEventListener('input', (e) => {
+                    GameManager.updateGameName(e.target.value);
+                });
+
+                document.getElementById('settings-team-name').addEventListener('input', (e) => {
+                    GameManager.updateTeamName(e.target.value);
+                });
+            }
+
+            // Initialize Lucide icons
+            if (window.lucide) {
+                lucide.createIcons();
+            }
+        },
+
+        // Track whether jersey grid is expanded (showing 50-99)
+        jerseyGridExpanded: false,
+
+        /**
+         * Render jersey grid (show 0-49, optionally 50-99)
          */
         renderJerseyGrid() {
             const game = DataModel.getCurrentGame();
@@ -121,7 +230,13 @@ const SettingsUI = (() => {
 
             container.innerHTML = '';
 
-            for (let i = 0; i < 100; i++) {
+            // Determine max jersey to show
+            const maxJersey = this.jerseyGridExpanded ? 100 : 50;
+
+            // Check if any selected jerseys are >= 50
+            const hasHighJerseys = game.teamRoster.some(j => j >= 50);
+
+            for (let i = 0; i < maxJersey; i++) {
                 const btn = document.createElement('button');
                 btn.className = 'jersey-grid-btn';
                 btn.dataset.jersey = i;
@@ -133,6 +248,26 @@ const SettingsUI = (() => {
 
                 container.appendChild(btn);
             }
+
+            // Add More/Less toggle button
+            const toggleBtn = document.createElement('button');
+            toggleBtn.className = 'jersey-grid-toggle';
+            if (this.jerseyGridExpanded) {
+                toggleBtn.textContent = 'Less';
+                toggleBtn.title = 'Hide jerseys 50-99';
+            } else {
+                toggleBtn.textContent = 'More';
+                toggleBtn.title = 'Show jerseys 50-99';
+                if (hasHighJerseys) {
+                    toggleBtn.textContent = `More (${game.teamRoster.filter(j => j >= 50).length} selected)`;
+                }
+            }
+            toggleBtn.onclick = (e) => {
+                e.stopPropagation();
+                this.jerseyGridExpanded = !this.jerseyGridExpanded;
+                this.renderJerseyGrid();
+            };
+            container.appendChild(toggleBtn);
         },
 
         /**

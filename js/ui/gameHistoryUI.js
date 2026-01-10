@@ -51,6 +51,49 @@ const GameHistoryUI = (() => {
         },
 
         /**
+         * Show game history as a tab (inline content, not modal)
+         */
+        showAsTab() {
+            // Create history tab container
+            let container = document.getElementById('history-tab-container');
+            if (!container) {
+                container = document.createElement('div');
+                container.id = 'history-tab-container';
+                container.className = 'tab-overlay';
+                document.body.insertBefore(container, document.querySelector('.tab-bar'));
+            }
+
+            container.innerHTML = `
+                <div class="history-tab-content" style="padding: 1rem; padding-bottom: 80px;">
+                    <h2 style="color: #667eea; margin-bottom: 1rem;">Game History</h2>
+
+                    <!-- Game Actions -->
+                    <div class="my-stats-card" style="margin-bottom: 1rem;">
+                        <div style="display: flex; gap: 0.5rem;">
+                            <button id="new-game-btn" class="btn-primary" style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 0.25rem;" onclick="GameHistoryUI.handleNewGame()">
+                                <i data-lucide="plus-circle" style="width: 16px; height: 16px;"></i> New
+                            </button>
+                            <button id="clear-game-btn" class="btn-danger" style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 0.25rem;" onclick="GameHistoryUI.handleClearGame()">
+                                <i data-lucide="eraser" style="width: 16px; height: 16px;"></i> Clear
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="game-list" class="game-list"></div>
+                    <p style="font-size: 0.75rem; color: #999; text-align: center; margin-top: 1rem;">Tap to load, long press to delete</p>
+                </div>
+            `;
+
+            // Render game list
+            this.renderGameList();
+
+            // Initialize Lucide icons
+            if (window.lucide) {
+                lucide.createIcons();
+            }
+        },
+
+        /**
          * Render game list
          */
         renderGameList() {
@@ -75,51 +118,28 @@ const GameHistoryUI = (() => {
 
             const isOnlyOneGame = validGames.length === 1;
 
+            // Sort by lastModified descending (newest first)
+            validGames.sort((a, b) => b.lastModified - a.lastModified);
+
             container.innerHTML = validGames.map(game => {
                 const date = new Date(game.timestamp);
-                const lastModified = new Date(game.lastModified);
                 const currentGameId = DataModel.getAppState().currentGameId;
                 const isCurrent = game.gameId === currentGameId;
 
                 return `
-                    <div class="game-card ${isCurrent ? 'current' : ''}">
+                    <div class="game-card ${isCurrent ? 'current' : ''}"
+                        data-game-id="${game.gameId}"
+                        style="cursor: pointer; padding: 0.75rem 1rem;"
+                    >
                         <div class="game-info">
-                            <div class="game-title">
-                                ${game.gameName}
-                                ${isCurrent ? '<span class="current-badge">Current</span>' : ''}
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div style="font-size: 1.3rem; font-weight: 600;">${game.teamName} - ${game.totalPoints} pts</div>
+                                <div style="font-size: 1.1rem; color: #666;">${game.gameName}</div>
                             </div>
-                            <div class="game-details">
-                                <span class="game-team">${game.teamName}</span>
-                                <span class="game-score">${game.totalPoints} points</span>
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.25rem;">
+                                <div style="font-size: 0.8rem; color: #999;">${Formatters.formatDateTime(date)}</div>
+                                ${isCurrent ? '<span class="current-badge" style="font-size: 0.7rem; padding: 2px 6px;">Current</span>' : ''}
                             </div>
-                            <div class="game-meta">
-                                <span>${Formatters.formatDateTime(date)}</span>
-                                <span>Last modified: ${Formatters.formatTime(lastModified)}</span>
-                            </div>
-                        </div>
-                        <div class="game-actions">
-                            <button
-                                onclick="GameHistoryUI.loadGame('${game.gameId}')"
-                                class="btn-secondary"
-                                title="Load this game"
-                            >
-                                <i data-lucide="folder-open"></i> Load
-                            </button>
-                            <button
-                                onclick="GameHistoryUI.exportGame('${game.gameId}')"
-                                class="btn-secondary"
-                                title="Export as JSON"
-                            >
-                                <i data-lucide="download"></i> Export
-                            </button>
-                            <button
-                                onclick="GameHistoryUI.deleteGame('${game.gameId}')"
-                                class="btn-danger"
-                                title="Delete game"
-                                ${isOnlyOneGame ? 'disabled' : ''}
-                            >
-                                <i data-lucide="trash-2"></i> Delete
-                            </button>
                         </div>
                     </div>
                 `;
@@ -129,6 +149,54 @@ const GameHistoryUI = (() => {
             if (window.lucide) {
                 lucide.createIcons();
             }
+
+            // Add tap and long-press handlers to game cards
+            this.setupGameCardHandlers();
+        },
+
+        /**
+         * Setup tap and long-press handlers for game cards
+         */
+        setupGameCardHandlers() {
+            const gameCards = document.querySelectorAll('.game-card[data-game-id]');
+
+            gameCards.forEach(card => {
+                const gameId = card.dataset.gameId;
+                let pressTimer = null;
+                let isLongPress = false;
+
+                const startPress = (e) => {
+                    isLongPress = false;
+                    pressTimer = setTimeout(() => {
+                        isLongPress = true;
+                        // Long press - delete
+                        this.deleteGame(gameId);
+                    }, 600); // 600ms for long press
+                };
+
+                const endPress = (e) => {
+                    clearTimeout(pressTimer);
+                    if (!isLongPress) {
+                        // Short tap - load game
+                        this.loadGame(gameId);
+                    }
+                };
+
+                const cancelPress = () => {
+                    clearTimeout(pressTimer);
+                };
+
+                // Touch events
+                card.addEventListener('touchstart', startPress);
+                card.addEventListener('touchend', endPress);
+                card.addEventListener('touchcancel', cancelPress);
+                card.addEventListener('touchmove', cancelPress);
+
+                // Mouse events (for desktop)
+                card.addEventListener('mousedown', startPress);
+                card.addEventListener('mouseup', endPress);
+                card.addEventListener('mouseleave', cancelPress);
+            });
         },
 
         /**
@@ -137,14 +205,15 @@ const GameHistoryUI = (() => {
         loadGame(gameId) {
             const appState = DataModel.getAppState();
             if (appState.currentGameId === gameId) {
-                // Already loaded, just close modal
-                this.close();
+                // Already the current game, do nothing
                 return;
             }
 
             // Load game (automatically saves current game first)
             GameManager.loadGame(gameId);
-            this.close();
+
+            // Re-render the game list to show updated current badge
+            this.renderGameList();
         },
 
         /**
@@ -152,6 +221,26 @@ const GameHistoryUI = (() => {
          */
         exportGame(gameId) {
             Storage.exportGameAsJSON(gameId);
+        },
+
+        /**
+         * Handle new game button
+         */
+        handleNewGame() {
+            if (confirm('Create a new game? Current game will be saved.')) {
+                GameManager.createNewGame(true); // Keep roster
+                this.renderGameList();
+            }
+        },
+
+        /**
+         * Handle clear game button
+         */
+        handleClearGame() {
+            if (confirm('Clear all events for this game? This cannot be undone.')) {
+                GameManager.clearCurrentGame();
+                this.renderGameList();
+            }
         },
 
         /**

@@ -108,13 +108,18 @@ const Formatters = (() => {
         },
 
         /**
-         * Format date and time
-         * @param {number} timestamp - Timestamp in milliseconds
+         * Format date and time (simple, no seconds)
+         * @param {Date} date - Date object
          * @returns {string}
          */
-        formatDateTime(timestamp) {
-            const date = new Date(timestamp);
-            return date.toLocaleString();
+        formatDateTime(date) {
+            const month = date.getMonth() + 1;
+            const day = date.getDate();
+            let hours = date.getHours();
+            const minutes = date.getMinutes().toString().padStart(2, '0');
+            const ampm = hours >= 12 ? 'PM' : 'AM';
+            hours = hours % 12 || 12;
+            return `${month}/${day} ${hours}:${minutes}${ampm}`;
         },
 
         /**
