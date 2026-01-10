@@ -209,13 +209,6 @@ const UI = (() => {
                 container.appendChild(wrapper);
             });
 
-            // Add "Modify" button after all players
-            const modifyBtn = document.createElement('button');
-            modifyBtn.className = 'jersey-btn modify-player-btn';
-            modifyBtn.innerHTML = '<i data-lucide="user-round-pen"></i>';
-            modifyBtn.onclick = () => SettingsUI.show();
-            container.appendChild(modifyBtn);
-
             // Initialize Lucide icons
             if (window.lucide) {
                 lucide.createIcons();
