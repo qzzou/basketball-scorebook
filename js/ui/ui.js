@@ -175,8 +175,8 @@ const UI = (() => {
                     btn.classList.add('selected');
                 }
 
-                // Add fouled-out class if 5+ personal fouls OR 2+ technical fouls
-                if (personalCount >= 5 || techCount >= 2) {
+                // Add fouled-out class if total fouls (personal + technical) reach 5 OR 2+ technical fouls
+                if (foulCount >= 5 || techCount >= 2) {
                     btn.classList.add('fouled-out');
                 }
 
