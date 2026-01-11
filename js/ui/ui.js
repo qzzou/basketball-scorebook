@@ -662,9 +662,8 @@ const UI = (() => {
 
             const activeEvents = EventManager.getActiveEvents();
 
-            // Filter events based on selected filters
-            const filteredEvents = activeEvents.filter(e => this.eventMatchesFilters(e));
-            const recentEvents = filteredEvents.slice(-50).reverse();
+            // Filter events based on selected filters (show all, newest first)
+            const filteredEvents = activeEvents.filter(e => this.eventMatchesFilters(e)).reverse();
 
             // Render player filter row
             let playerFilterHtml = '<div class="action-log-player-filters">';
@@ -697,7 +696,7 @@ const UI = (() => {
             filterHtml += '</div>';
 
             // Render events
-            let eventsHtml = recentEvents.map(event => {
+            let eventsHtml = filteredEvents.map(event => {
                 const playerName = game.playerNames[event.playerNumber] || `Player`;
                 const jerseyAndName = `#${event.playerNumber} ${playerName}`;
                 const sentence = Formatters.formatEventToSentence(event, jerseyAndName);
