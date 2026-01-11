@@ -526,6 +526,130 @@ const UI = (() => {
             this.showCourtOverlay(`#${jerseyNumber} ${playerName} committed ${foulName}`);
         },
 
+        // Filter state for action log
+        actionLogFilters: ['all'],
+        actionLogPlayerFilters: [], // Empty means all players
+
+        /**
+         * Toggle a filter tag
+         */
+        toggleFilter(filter) {
+            const idx = this.actionLogFilters.indexOf(filter);
+
+            if (filter === 'all') {
+                // Clicking 'all' clears other filters and selects only 'all'
+                this.actionLogFilters = ['all'];
+            } else {
+                // Remove 'all' if it's selected when clicking another filter
+                const allIdx = this.actionLogFilters.indexOf('all');
+                if (allIdx !== -1) {
+                    this.actionLogFilters.splice(allIdx, 1);
+                }
+
+                if (idx !== -1) {
+                    // Deselect this filter
+                    this.actionLogFilters.splice(idx, 1);
+                    // If no filters left, select 'all'
+                    if (this.actionLogFilters.length === 0) {
+                        this.actionLogFilters = ['all'];
+                    }
+                } else {
+                    // Select this filter
+                    this.actionLogFilters.push(filter);
+                }
+            }
+
+            this.renderActionLog();
+        },
+
+        /**
+         * Toggle a player filter
+         */
+        togglePlayerFilter(jerseyNumber) {
+            const idx = this.actionLogPlayerFilters.indexOf(jerseyNumber);
+
+            if (idx !== -1) {
+                // Deselect this player
+                this.actionLogPlayerFilters.splice(idx, 1);
+            } else {
+                // Select this player
+                this.actionLogPlayerFilters.push(jerseyNumber);
+            }
+
+            this.renderActionLog();
+        },
+
+        /**
+         * Check if an event matches the current filters
+         *
+         * Filter logic:
+         * - Stats and Fouls are independent categories (OR with everything)
+         * - Shot filters use AND logic within their groups:
+         *   - Shot types (3PT, FG, FT): if any selected, shot must match one
+         *   - Results (Made, Miss): if any selected, shot must match one
+         *   - Location (Placed, Unplaced): if any selected, shot must match one
+         * - Multiple shot type/result/location filters use AND between groups
+         */
+        eventMatchesFilters(event) {
+            const filters = this.actionLogFilters;
+            const playerFilters = this.actionLogPlayerFilters;
+
+            // Check player filter first (if any players selected, event must be from one of them)
+            if (playerFilters.length > 0 && !playerFilters.includes(event.playerNumber)) {
+                return false;
+            }
+
+            // 'all' means show everything (that passes player filter)
+            if (filters.includes('all')) return true;
+
+            // Check non-shot filters first (Stats, Fouls) - these use OR logic
+            if (filters.includes('stats') && event.action === 'stat') return true;
+            if (filters.includes('fouls') && event.action === 'foul') return true;
+
+            // For shots, we need AND logic between filter groups
+            if (event.action !== 'shot') return false;
+
+            // Categorize the active shot filters
+            const shotTypeFilters = filters.filter(f => ['3pt', 'fg', 'ft'].includes(f));
+            const resultFilters = filters.filter(f => ['made', 'miss'].includes(f));
+            const locationFilters = filters.filter(f => ['placed', 'unplaced'].includes(f));
+
+            // If no shot-related filters are active, don't show shots
+            if (shotTypeFilters.length === 0 && resultFilters.length === 0 && locationFilters.length === 0) {
+                return false;
+            }
+
+            // Check shot type (if any type filters are selected, must match one)
+            if (shotTypeFilters.length > 0) {
+                const shotType = event.shotData?.shotType;
+                const matchesType =
+                    (shotTypeFilters.includes('3pt') && shotType === '3PT') ||
+                    (shotTypeFilters.includes('fg') && shotType === 'FG') ||
+                    (shotTypeFilters.includes('ft') && shotType === 'FT');
+                if (!matchesType) return false;
+            }
+
+            // Check result (if any result filters are selected, must match one)
+            if (resultFilters.length > 0) {
+                const made = event.shotData?.made;
+                const matchesResult =
+                    (resultFilters.includes('made') && made === true) ||
+                    (resultFilters.includes('miss') && made === false);
+                if (!matchesResult) return false;
+            }
+
+            // Check location (if any location filters are selected, must match one)
+            if (locationFilters.length > 0) {
+                const hasLocation = event.shotData?.location !== null;
+                const matchesLocation =
+                    (locationFilters.includes('placed') && hasLocation) ||
+                    (locationFilters.includes('unplaced') && !hasLocation);
+                if (!matchesLocation) return false;
+            }
+
+            return true;
+        },
+
         /**
          * Render action log
          */
@@ -537,9 +661,43 @@ const UI = (() => {
             if (!container) return;
 
             const activeEvents = EventManager.getActiveEvents();
-            const recentEvents = activeEvents.slice(-30).reverse();
 
-            container.innerHTML = recentEvents.map(event => {
+            // Filter events based on selected filters
+            const filteredEvents = activeEvents.filter(e => this.eventMatchesFilters(e));
+            const recentEvents = filteredEvents.slice(-50).reverse();
+
+            // Render player filter row
+            let playerFilterHtml = '<div class="action-log-player-filters">';
+            game.teamRoster.forEach(jerseyNumber => {
+                const isActive = this.actionLogPlayerFilters.includes(jerseyNumber);
+                playerFilterHtml += `<button class="player-filter-tag ${isActive ? 'active' : ''}" onclick="UI.togglePlayerFilter(${jerseyNumber})">${jerseyNumber}</button>`;
+            });
+            playerFilterHtml += '</div>';
+
+            // Render filter tags
+            const filterTags = ['all', 'stats', 'fouls', '3pt', 'fg', 'ft', 'made', 'miss', 'placed', 'unplaced'];
+            const filterLabels = {
+                'all': 'All',
+                'stats': 'Stats',
+                'fouls': 'Fouls',
+                '3pt': '3PT',
+                'fg': 'FG',
+                'ft': 'FT',
+                'made': 'Made',
+                'miss': 'Miss',
+                'placed': 'Placed',
+                'unplaced': 'Unplaced'
+            };
+
+            let filterHtml = '<div class="action-log-filters">';
+            filterTags.forEach(tag => {
+                const isActive = this.actionLogFilters.includes(tag);
+                filterHtml += `<button class="filter-tag ${isActive ? 'active' : ''}" onclick="UI.toggleFilter('${tag}')">${filterLabels[tag]}</button>`;
+            });
+            filterHtml += '</div>';
+
+            // Render events
+            let eventsHtml = recentEvents.map(event => {
                 const playerName = game.playerNames[event.playerNumber] || `Player`;
                 const jerseyAndName = `#${event.playerNumber} ${playerName}`;
                 const sentence = Formatters.formatEventToSentence(event, jerseyAndName);
@@ -555,6 +713,8 @@ const UI = (() => {
 
                 return `<div class="action-item ${className}" onclick="UI.handleActionClick(${event.eventIndex})">[${time}] ${sentence}</div>`;
             }).join('');
+
+            container.innerHTML = playerFilterHtml + filterHtml + '<div class="action-log-events">' + eventsHtml + '</div>';
         },
 
         /**

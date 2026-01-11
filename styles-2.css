@@ -698,11 +698,81 @@ button:disabled {
 
 /* Action Log */
 .action-log {
-    max-height: 300px;
-    overflow-y: auto;
     border: 1px solid #ddd;
     border-radius: 6px;
     padding: 0.5rem;
+}
+
+/* Action Log Player Filter Row */
+.action-log-player-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+    margin-bottom: 0.4rem;
+    padding-bottom: 0.4rem;
+    border-bottom: 1px solid #eee;
+}
+
+.player-filter-tag {
+    padding: 0.2rem 0.4rem;
+    font-size: 0.75rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background: #f5f5f5;
+    color: #666;
+    cursor: pointer;
+    transition: all 0.2s;
+    min-width: 28px;
+    text-align: center;
+}
+
+.player-filter-tag:hover {
+    background: #e8e8e8;
+    border-color: #ccc;
+}
+
+.player-filter-tag.active {
+    background: #667eea;
+    color: white;
+    border-color: #667eea;
+}
+
+/* Action Log Filter Tags */
+.action-log-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    margin-bottom: 0.5rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #eee;
+}
+
+.filter-tag {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+    border: 1px solid #ddd;
+    border-radius: 12px;
+    background: #f5f5f5;
+    color: #666;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.filter-tag:hover {
+    background: #e8e8e8;
+    border-color: #ccc;
+}
+
+.filter-tag.active {
+    background: #667eea;
+    color: white;
+    border-color: #667eea;
+}
+
+/* Action Log Events Container */
+.action-log-events {
+    max-height: 250px;
+    overflow-y: auto;
 }
 
 .action-item {
